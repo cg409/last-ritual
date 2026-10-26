@@ -73,12 +73,12 @@ Separate multiple origins with commas. Then save, which redeploys the server.
 | WASD / Shift | move / run | LMB | attack |
 | C / X | crouch / crawl (hide in tall grass) | Q | special ability |
 | hold E | enchant tomb, rescue, heal, place keys, disarm | RMB hold/release | trident (Stalker) / string (Puppeteer) |
-| Space | skill check (or struggle when hanged) | R | rev chainsaw (Ravager) |
+| Space | skill check / struggle when hanged / **jump** (vault fences, sills, tombs, wrecks) | R | rev chainsaw (Ravager) |
 | F / G / V | hold candle / place-pick up / light-snuff | T | set trap |
 | A / D | wiggle when carried | hold E / Z | pick up, hang, kill, damage tombs / drop |
 
 **Rules:** enchanting 1 tomb seals the monster's special. 2 tombs make it slower with shorter reach. 3 tombs spawn 3 keys; bring them to the gate.
-You have 2 lives. On the first, a downed survivor is hanged and can be rescued. On the second, the monster kills instantly and you become a spectating mouse.
+You have 2 lives. On the first, a downed survivor is hanged and can be rescued. On the second, the monster kills instantly and you return as a **mouse** (scanned rat model): Shift to scurry fast, Space to leap, Tab to spectate survivors. Only other dead players can see mice.
 
 ## Assets
 Realistic models and PBR textures (dead trees, mossy rocks, shrubs, ferns, cars, barrels, iron gate, street lamps, stone/plank/slate textures) are **CC0 from [Poly Haven](https://polyhaven.com)**. They live in `client/public/assets` (~86 MB, committed so Netlify serves them). To re-download or change the list: `node tools/fetch-assets.mjs`.

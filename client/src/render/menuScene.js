@@ -40,7 +40,7 @@ export class MenuScene {
     const prof = [[0.42, 0], [0.34, 0.18], [0.3, 1.25], [0.36, 1.45], [0, 1.6]].map(([r, y]) => new THREE.Vector2(r, y));
     const bol = sh(new THREE.Mesh(new THREE.LatheGeometry(prof, 12), pbr('mossy_stone_wall', 1))); bol.position.set(-5, 0, -4); g.add(bol);
     this.crow = makeCrow(); this.crow.position.set(-5, 1.6, -4); this.crow.rotation.y = 0.8; g.add(this.crow);
-    this.redLight = vlight(0xff2a10, 3, 10, 2); this.redLight.position.set(-2.3, 1.6, -6); g.add(this.redLight);
+    this.redLight = vlight(0xff2a10, 1.2, 6, 2); this.redLight.position.set(-2.3, 1.6, -6); g.add(this.redLight);
     this.nextBolt = 6;
   }
 
@@ -56,7 +56,7 @@ export class MenuScene {
     this.hanged.root.rotation.y = Math.sin(t * 0.6) * 0.25;
     this.monster.update(dt, { speed: 0, state: 'alive', role: 'monster' });
     animateCrow(this.crow, t, 0, dt);
-    this.redLight.intensity = 3 + Math.sin(t * 9) * 0.6 + Math.sin(t * 23) * 0.4;
+    this.redLight.intensity = 1.2 + Math.sin(t * 9) * 0.25 + Math.sin(t * 23) * 0.15;
     this.nextBolt -= dt;
     let flash = 0;
     if (this.nextBolt < 0) { this.nextBolt = 7 + Math.random() * 9; this.boltT = 0.5; }

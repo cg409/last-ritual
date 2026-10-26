@@ -14,7 +14,7 @@ export const MODELS = [
   'dead_tree_trunk', 'dead_tree_trunk_02', 'shrub_01', 'shrub_02', 'shrub_04', 'fern_02', 'nettle_plant', 'weed_plant_02',
   'grass_medium_01', 'grass_medium_02', 'rock_moss_set_01', 'rock_moss_set_02', 'boulder_01', 'tree_stump_01',
   'dry_branches_medium_01', 'Barrel_01', 'wooden_crate_01', 'old_tyre', 'covered_car', 'large_iron_gate', 'street_lamp_01',
-  'gothic_statue', 'wheelchair_01', 'Lantern_01', 'wooden_axe',
+  'gothic_statue', 'wheelchair_01', 'Lantern_01', 'wooden_axe', 'street_rat',
 ];
 export const TEXTURES = [
   'forest_ground_04', 'brown_mud_leaves_01', 'mossy_stone_wall', 'castle_wall_slates', 'weathered_plank_siding',

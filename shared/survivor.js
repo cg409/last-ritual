@@ -9,7 +9,11 @@ const DOOR_R = 3.6;
 export function updateSurvivor(g, p, dt) {
   const inp = p.input;
   if (p.state === 'escaped') return;
-  if (p.state === 'mouse') return moveBody(g, p, inp, 2.6, dt, 0.15);
+  if (p.state === 'mouse') { // the dead return as a quick little mouse: fast, can leap
+    if (inp.actions.some((a) => a.t === 'jump')) startJump(g, p, 0.55, 1.1);
+    updateJump(g, p);
+    return moveBody(g, p, inp, inp.run ? 6.5 : 4.2, dt, 0.08);
+  }
   if (p.state === 'hooked') return updateHooked(g, p, dt);
   if (p.state === 'carried') {
     if (inp.actions.some((a) => a.t === 'wiggle')) p.wiggle = Math.min(1, p.wiggle + 0.008);
@@ -21,6 +25,11 @@ export function updateSurvivor(g, p, dt) {
   for (const a of inp.actions) handleAction(g, p, a);
   burnHeld(g, p, dt);
   const stuck = p.stuckUntil > g.time;
+  // Jump: clears fences, window sills, wrecks and tombs (obstacles up to ~1.25m). Costs some stamina.
+  if (inp.actions.some((a) => a.t === 'jump') && !stuck && !inp.crawl && (p.stamina ?? 1) > 0.08 && !p.act) {
+    if (startJump(g, p, 0.72, 1.25)) p.stamina = Math.max(0, (p.stamina ?? 1) - 0.08);
+  }
+  updateJump(g, p);
   p.crouch = !!inp.crouch; p.crawl = !!inp.crawl;
   // Stamina: sprinting (same top speed as the monster) lasts ~7s, then you must recover.
   if (p.stamina == null) p.stamina = 1;
@@ -53,14 +62,34 @@ export function updateSurvivor(g, p, dt) {
   }
 }
 
+// Jump arc: p.jumpT0 = start time, p.jumpDur, p.jumpH (apex height). p.y is the current height.
+export function startJump(g, p, dur, height) {
+  if (p.jumpT0 != null && g.time - p.jumpT0 < p.jumpDur) return false;
+  p.jumpT0 = g.time; p.jumpDur = dur; p.jumpH = height;
+  g.emit({ t: 'jump', id: p.id });
+  return true;
+}
+export function updateJump(g, p) {
+  if (p.jumpT0 == null) { p.y = 0; return; }
+  const k = (g.time - p.jumpT0) / p.jumpDur;
+  if (k >= 1) { p.jumpT0 = null; p.y = 0; return; }
+  p.y = 4 * p.jumpH * k * (1 - k); // parabola
+}
+
 export function moveBody(g, p, inp, speed, dt, radius) {
   let mx = inp.mx || 0, mz = inp.mz || 0;
   const len = Math.hypot(mx, mz);
   if (len > 1) { mx /= len; mz /= len; }
-  p.moving = len > 0.1 && speed > 0;
-  p.speed = p.moving ? speed * Math.min(1, len) : 0;
+  // Keep momentum while airborne
+  if (p.y > 0.05 && len < 0.1 && p.airDir) { mx = p.airDir[0]; mz = p.airDir[1]; speed = Math.max(speed, p.airSpeed || 0); }
+  const mlen = Math.hypot(mx, mz);
+  p.moving = mlen > 0.1 && speed > 0;
+  p.speed = p.moving ? speed * Math.min(1, mlen) : 0;
   if (p.moving) {
-    const c = collide(g.map, p.x + mx * speed * dt, p.z + mz * speed * dt, radius);
+    if (p.y > 0.05) { if (!p.airDir) { p.airDir = [mx, mz]; p.airSpeed = speed; } } else p.airDir = null;
+    // While in the air the body clears obstacles lower than ~85% of the jump apex.
+    const clearH = p.y > 0.25 ? (p.jumpH || 0) * 1.0 : 0;
+    const c = collide(g.map, p.x + mx * speed * dt, p.z + mz * speed * dt, radius, clearH);
     p.x = c.x; p.z = c.z;
     p.rot = Math.atan2(mx, mz);
   } else if (typeof inp.face === 'number') p.rot = inp.face;

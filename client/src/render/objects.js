@@ -43,7 +43,7 @@ export function buildObjects(scene, map) {
     g.position.set(t.x, 0, t.z); g.rotation.y = t.rot;
     const runeMat = new THREE.MeshBasicMaterial({ map: runeTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xb070ff });
     const rune = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), runeMat); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.04; g.add(rune);
-    const light = vlight(0x9a50ff, 0, 9, 1.5); light.position.y = 1.6; g.add(light);
+    const light = vlight(0x9a50ff, 0, 6, 2); light.position.y = 1.6; g.add(light);
     const shards = [];
     for (let i = 0; i < 6; i++) {
       const sd = sh(new THREE.Mesh(new THREE.DodecahedronGeometry(0.1 + Math.random() * 0.1, 0), stone));

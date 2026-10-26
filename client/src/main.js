@@ -3,7 +3,7 @@ import './style.css';
 import './screens.css';
 import './hud.css';
 import { Stage } from './render/stage.js';
-import { loadCharacterAssets, assetsReady } from './render/characters.js';
+import { loadCharacterAssets, assetsReady, Character } from './render/characters.js';
 import { MenuScene } from './render/menuScene.js';
 import { Input } from './input.js';
 import { initAudio, startAmbience, stopAmbience } from './audio.js';
@@ -17,7 +17,7 @@ import { setupMultiplayer } from './multiplayer.js';
 import { SKINS, MONSTER_IDS, BOT_NAMES, MAX_PLAYERS, TRAPS } from '@shared/constants.js';
 import { settingsPanel } from './ui/settingsMenu.js';
 import { show } from './ui/dom.js';
-import { loadModels, ALL_MODELS, setAnisotropy } from './render/assets.js';
+import { loadModels, ALL_MODELS, setAnisotropy, getModel } from './render/assets.js';
 import { loadCrowAssets } from './render/crow.js';
 import { graphics } from './settings.js';
 
@@ -116,6 +116,7 @@ window.addEventListener('pointerdown', () => { initAudio(); if (!app.match) star
       loadCrowAssets(),
     ]);
   } catch (e) { ld.text('Failed to load assets: ' + e.message); return; }
+  if (new URLSearchParams(location.search).has('debug')) window.__hv = { Character, stage, getModel };
   app.menuScene = new MenuScene(stage);
   requestAnimationFrame(loop);
   toMenu();

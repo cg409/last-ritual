@@ -46,7 +46,7 @@ export class Fx {
       const k = tb.done ? 1 : tb.progress;
       o.runeMat.opacity = tb.done ? 0.9 + Math.sin(t * 2) * 0.1 : k * 0.6 * (0.8 + Math.sin(t * 6) * 0.2);
       o.rune.rotation.z += dt * (0.1 + k * 0.6);
-      o.light.intensity = s.blackout ? 0 : tb.done ? 6 : k * 3;
+      o.light.intensity = s.blackout ? 0 : tb.done ? 1.6 : k * 0.8; // faint rune glow only
       o.lid.position.y = 1.07 + (tb.done ? 0.1 : 0) + (tb.progress > 0 && !tb.done ? Math.sin(t * 30) * 0.004 * k : 0);
       o.shards.forEach((sh, j) => (sh.visible = j < tb.cracks));
       o.cross.rotation.z = Math.min(tb.cracks, 4) * 0.08;
@@ -73,7 +73,7 @@ export class Fx {
     this.sync(this.candles, s.candles, () => makeCandle(), (o, c) => {
       o.position.set(c.x, 0, c.z); o.scale.setScalar(2.2);
       const lit = c.lit && !s.blackout;
-      o.userData.flame.visible = lit; o.userData.light.intensity = lit ? 5 : 0;
+      o.userData.flame.visible = lit; o.userData.light.intensity = lit ? 2.2 : 0;
     });
     // Traps are invisible to survivors unless very close (or holding a candle).
     this.sync(this.traps, s.traps, (tr) => makeTrap(tr.type), (o, tr) => {
@@ -84,7 +84,7 @@ export class Fx {
     this.sync(this.projs, s.projectiles, () => makeTrident(), (o, p) => { o.position.set(p.x, 1.4, p.z); o.rotation.set(0, p.dir, 0); });
     // Monster lantern/candle lights off during blackout
     for (const ch of v.chars.values()) {
-      ch.candle && (ch.candle.userData.light.intensity = s.blackout ? 0 : 4, ch.candle.userData.flame.visible = !s.blackout);
+      ch.candle && (ch.candle.userData.light.intensity = s.blackout ? 0 : 2.2, ch.candle.userData.flame.visible = !s.blackout);
     }
     // Ravager footprints: visible only to the Ravager.
     if (amMonster && mon.monster === 'ravager') {

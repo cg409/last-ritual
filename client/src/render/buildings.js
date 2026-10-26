@@ -49,7 +49,6 @@ function buildOne(root, b, M) {
   const plinth = sh(new THREE.Mesh(uvBox(b.w + 0.4, 0.5, b.d + 0.4, 1.5), M.stone)); plinth.position.set(b.x, 0.0, b.z); g.add(plinth);
   addRoof(g, b, M);
   if (b.porch) addPorch(g, b, M);
-  if (b.style === 'mansion') { // faint, flickering warm light in one room — something lives here
-    const l = vlight(0xff8a3a, 3, 10, 2); l.position.set(b.x - 5, 1.8, b.z - 3); l.flicker = 0.6; g.add(l);
-  }
+  // No interior lights: the buildings are lit only by moonlight falling through the windows.
+  void vlight;
 }

@@ -27,6 +27,7 @@ export class Match {
       const me = this.view.me();
       const a = me && this.skill.press(me.skill, this.gameTime());
       if (a) this.input.actions.push(a);
+      return !!a || !!me?.skill || !!me?.act; // consumed: don't also jump
     };
     const me = this.view.me();
     if (me) this.input.yaw = me.rot;

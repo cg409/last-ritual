@@ -24,7 +24,8 @@
   "gothic_statue": "models/gothic_statue/gothic_statue_1k.gltf",
   "wheelchair_01": "models/wheelchair_01/wheelchair_01_1k.gltf",
   "Lantern_01": "models/Lantern_01/Lantern_01_1k.gltf",
-  "wooden_axe": "models/wooden_axe/wooden_axe_1k.gltf"
+  "wooden_axe": "models/wooden_axe/wooden_axe_1k.gltf",
+  "street_rat": "models/street_rat/street_rat_1k.gltf"
  },
  "textures": {
   "forest_ground_04": {

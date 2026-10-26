@@ -5,6 +5,7 @@ import { buildObjects } from './objects.js';
 import { Character } from './characters.js';
 import { Fx } from './fx.js';
 import { CameraRig } from './camera.js';
+import { Mice } from './mouse.js';
 import { dist } from '@shared/rng.js';
 
 const MODEL_YAW = Math.PI; // the rigged model faces -Z
@@ -19,6 +20,7 @@ export class GameView {
     this.chars = new Map();
     this.fx = new Fx(this, map);
     this.cam = new CameraRig(stage.camera);
+    this.mice = new Mice(this.root);
     this.prev = null; this.snap = null; this.snapT = 0;
     this.time = 0;
   }
@@ -57,7 +59,13 @@ export class GameView {
       }
       ch.root.position.set(pos.x, 0, pos.z);
       ch.root.rotation.y = pos.rot + MODEL_YAW;
+      if (p.state === 'carried' && p.carrier) { // ride on the carrier's shoulder (no lag)
+        const cc = this.chars.get(p.carrier);
+        if (cc) { ch.root.position.copy(cc.root.position); ch.root.rotation.y = cc.root.rotation.y + Math.PI / 2; }
+      }
       ch.update(dt, p);
+      // Mice (dead players) are visible to themselves and other dead/escaped spectators only.
+      this.mice.update(p, pos, dt, p.id === this.myId || spectating);
       let visible = !(p.state === 'mouse' || p.state === 'escaped');
       // Monster player: survivors camouflaged in grass, or motionless in a blackout, are near-invisible.
       if (amMonster && p.role === 'survivor' && visible && !p.reveal) {
@@ -90,9 +98,11 @@ export class GameView {
 
     const focusP = spectating ? this.spectateTarget(ctl) : me;
     const fch = focusP && this.chars.get(focusP.id);
-    if (fch) this.cam.update(dt, fch.root.position, focusP, ctl, this.map, amMonster && !spectating);
+    const mouseObj = focusP?.state === 'mouse' ? this.mice.items.get(focusP.id) : null;
+    const focusPos = mouseObj ? mouseObj.position : fch?.root.position;
+    if (focusPos) this.cam.update(dt, focusPos, focusP, ctl, this.map, amMonster && !spectating);
     this.fx.update(dt, this.snap, me, mon);
-    this.stage.follow(fch ? fch.root.position : new THREE.Vector3(), this.time);
+    this.stage.follow(focusPos || new THREE.Vector3(), this.time);
     const gm = this.world.userData.grassMat?.userData.shader; if (gm) gm.uniforms.uTime.value = this.time;
   }
 
@@ -107,7 +117,7 @@ export class GameView {
   }
 
   dispose() {
-    this.fx.dispose();
+    this.fx.dispose(); this.mice.dispose();
     this.root.removeFromParent();
     this.root.traverse((o) => { o.geometry?.dispose?.(); if (o.material) [].concat(o.material).forEach((m) => { m.map?.dispose?.(); m.dispose?.(); }); });
   }

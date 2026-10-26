@@ -25,9 +25,11 @@ function blocked(map, x, z, r) {
 }
 
 // Push a circle at (x,z) radius r out of all obstacles. Returns {x,z}.
-export function collide(map, x, z, r = 0.4) {
+// clearH: height the body is currently clearing (jumping) — obstacles lower than that are passed over.
+export function collide(map, x, z, r = 0.4, clearH = 0) {
   for (let iter = 0; iter < 2; iter++) {
     for (const b of map.rects) {
+      if (clearH > 0 && b.h <= clearH) continue;
       const dx = x - b.x, dz = z - b.z;
       const ox = b.hw + r - Math.abs(dx), oz = b.hd + r - Math.abs(dz);
       if (ox > 0 && oz > 0) {
@@ -35,6 +37,7 @@ export function collide(map, x, z, r = 0.4) {
       }
     }
     for (const c of map.circles) {
+      if (clearH > 0 && c.h <= clearH) continue;
       const dx = x - c.x, dz = z - c.z, d = Math.hypot(dx, dz), m = c.r + r;
       if (d < m && d > 1e-4) { x = c.x + (dx / d) * m; z = c.z + (dz / d) * m; }
     }

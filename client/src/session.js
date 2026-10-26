@@ -14,6 +14,8 @@ export class LocalSession {
     const as = new URLSearchParams(location.search).get('as');
     const forceMonster = as === 'monster' ? myId : as === 'survivor' ? roster.find((r) => r.id !== myId)?.id : null;
     this.game = new Game({ roster, forceMonster });
+    // Debug: ?dead=1 starts you as a mouse (to test the after-death mode).
+    if (new URLSearchParams(location.search).has('dead')) { const me = this.game.player(myId); if (me && me.role === 'survivor') me.state = 'mouse'; }
     this.seed = this.game.seed;
     this.onSnap = null;
     this.acc = 0; this.paused = false;

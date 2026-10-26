@@ -26,9 +26,9 @@ export class Stage {
     this.scene.fog = new THREE.FogExp2(this.fogColor.clone(), this.baseFog = 0.034);
     this.camera = new THREE.PerspectiveCamera(settings().video.fov, window.innerWidth / window.innerHeight, 0.05, 500);
 
-    this.hemi = new THREE.HemisphereLight(0x5a6c90, 0x16120e, this.baseHemi = 1.15);
+    this.hemi = new THREE.HemisphereLight(0x4a5a7c, 0x0e0c0a, this.baseHemi = 0.75);
     this.scene.add(this.hemi);
-    this.moon = new THREE.DirectionalLight(0x9db2e8, this.baseMoon = 2.2);
+    this.moon = new THREE.DirectionalLight(0xa9bcf0, this.baseMoon = 2.8);
     this.moon.castShadow = true;
     this.moon.shadow.bias = -0.0004; this.moon.shadow.normalBias = 0.04;
     const sc = this.moon.shadow.camera; sc.left = sc.bottom = -38; sc.right = sc.top = 38; sc.near = 1; sc.far = 160;

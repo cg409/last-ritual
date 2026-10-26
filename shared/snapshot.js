@@ -8,7 +8,7 @@ export function makeSnapshot(g) {
     lastScreech: g.lastScreech,
     players: s.players.map((p) => ({
       id: p.id, name: p.name, isBot: p.isBot, role: p.role, skin: p.skin, monster: p.monster,
-      x: r1(p.x), z: r1(p.z), rot: r1(p.rot), speed: r1(p.speed), running: p.running, crouch: p.crouch, crawl: p.crawl,
+      x: r1(p.x), z: r1(p.z), y: r1(p.y || 0), jumping: p.jumpT0 != null, jumpK: p.jumpT0 != null ? r1((t - p.jumpT0) / p.jumpDur) : 0, rot: r1(p.rot), speed: r1(p.speed), running: p.running, crouch: p.crouch, crawl: p.crawl,
       state: p.state, health: p.health, lives: p.lives, keys: p.keys, act: p.act, actT: r1(p.actT),
       candles: p.candles.map(Math.round), holding: p.holding, carrying: p.carrying, carrier: p.carrier, hookId: p.hookId,
       hookT: r1(p.hookT), downT: r1(p.downT), disguise: p.disguise, aiming: p.aiming,

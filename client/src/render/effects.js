@@ -32,7 +32,7 @@ export function makeTrap(type) {
 export function makeTrident() {
   const g = new THREE.Group();
   const w = makeWeapon('trident'); w.rotation.x = Math.PI / 2; w.position.z = -0.6; g.add(w);
-  g.add(vlight(0x6fe0ff, 3, 6, 2));
+  g.add(vlight(0x6fe0ff, 1.2, 4, 2));
   return g;
 }
 

@@ -79,7 +79,7 @@ export class Hud {
          <div class="hint">${me.lives === 2 ? 'Two lives remain' : '<span style="color:#c21d1d">Last life — the next fall is death</span>'}</div>
          <div class="stamina ${me.exhausted ? 'ex' : ''}"><div style="width:${Math.round((me.stamina ?? 1) * 100)}%"></div></div>` : '';
     this.el('ab').innerHTML = me.role === 'monster' ? abilitiesHtml(s, me) : '';
-    this.el('spect').innerHTML = me.state === 'mouse' ? 'YOU ARE A MOUSE · <span class="key">TAB</span> spectate / roam · <span class="key">LMB</span> next'
+    this.el('spect').innerHTML = me.state === 'mouse' ? 'YOU ARE A MOUSE · <span class="key">SHIFT</span> scurry · <span class="key">SPACE</span> leap · <span class="key">TAB</span> spectate survivors · <span class="key">LMB</span> next'
       : me.state === 'escaped' ? 'YOU ESCAPED · <span class="key">LMB</span> next survivor' : '';
     this.el('help').innerHTML = me.role === 'monster'
       ? 'LMB attack · Q special · RMB aim · T trap · hold E pick up / hang / damage · Z drop' + (mon.monster === 'ravager' ? ' · R chainsaw' : '')

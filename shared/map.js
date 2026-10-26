@@ -78,9 +78,9 @@ export function generateMap(seed) {
     map.hooks.push({ id: i, x: p.x, z: p.z, rot: rng.range(0, Math.PI * 2) });
     map.circles.push({ x: p.x, z: p.z, r: 0.3, h: 3.2, type: 'hookpost' });
   }
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 3; i++) { // only a few dim lamps — the realm is lit mostly by the moon
     const p = place(3, 300, 8); if (!p) continue;
-    map.lamps.push({ id: i, x: p.x, z: p.z, r: 6 });
+    map.lamps.push({ id: i, x: p.x, z: p.z, r: 5 });
     map.circles.push({ x: p.x, z: p.z, r: 0.2, h: 3.9, type: 'lamppost' });
   }
 

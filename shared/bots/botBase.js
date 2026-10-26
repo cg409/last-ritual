@@ -28,6 +28,7 @@ export class BotBase {
     // unstick with a sidestep
     if (dist(p.x, p.z, this.lastPos.x, this.lastPos.z) < 0.02) this.stuckT += 1 / 20; else this.stuckT = 0;
     this.lastPos = { x: p.x, z: p.z };
+    if (this.stuckT > 0.35 && this.stuckT < 0.4 && p.role === 'survivor') this.act({ t: 'jump' }); // try vaulting first
     if (this.stuckT > 0.6) {
       const side = a + (g.random() < 0.5 ? 1.57 : -1.57);
       out.mx = Math.sin(side); out.mz = Math.cos(side);

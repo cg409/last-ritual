@@ -20,20 +20,23 @@ export class CameraRig {
       this.look.set(eye.x + Math.sin(yaw) * Math.cos(pitch), eye.y + Math.sin(pitch), eye.z + Math.cos(yaw) * Math.cos(pitch));
     } else {
       const low = p.crouch || p.crawl || p.state === 'downed';
-      const head = new THREE.Vector3(target.x, low ? 1.0 : 1.55, target.z);
+      const mouse = p.state === 'mouse';
+      const head = new THREE.Vector3(target.x, (low ? 0.8 : 1.55) + (p.y || 0) * 0.6, target.z);
+      if (p.crawl || p.state === 'downed') head.y = 0.6;
       if (p.state === 'hooked') head.y = 2.3;
-      if (p.state === 'mouse') head.y = 0.4;
+      if (mouse) head.y = 0.22 + (p.y || 0) * 0.5;   // low, mouse's-eye view
       const right = new THREE.Vector3(-Math.cos(yaw), 0, Math.sin(yaw));
       // Pull the camera in when a wall is behind the player.
-      let want = p.state === 'mouse' ? 2 : 3.6;
-      const back = (d) => head.clone().addScaledVector(fwd, -d * Math.cos(pitch)).addScaledVector(right, -0.55);
+      let want = mouse ? 1.1 : 3.6;
+      const side = mouse ? 0 : -0.55;
+      const back = (d) => head.clone().addScaledVector(fwd, -d * Math.cos(pitch)).addScaledVector(right, side);
       for (let d = want; d > 0.8; d -= 0.4) { const b = back(d); if (lineOfSight(map, head.x, head.z, b.x, b.z)) { want = d; break; } want = d - 0.4; }
       this.dist += (Math.max(0.8, want) - this.dist) * Math.min(1, dt * 8);
-      const camPos = back(this.dist); camPos.y = head.y - Math.sin(pitch) * this.dist + 0.25;
-      camPos.y = Math.max(0.3, camPos.y);
+      const camPos = back(this.dist); camPos.y = head.y - Math.sin(pitch) * this.dist + (mouse ? 0.12 : 0.25);
+      camPos.y = Math.max(mouse ? 0.12 : 0.3, camPos.y);
       this.pos.lerp(camPos, Math.min(1, dt * 14));
       this.camera.position.copy(this.pos);
-      this.look.copy(head).addScaledVector(right, -0.55).addScaledVector(fwd, 2);
+      this.look.copy(head).addScaledVector(right, side).addScaledVector(fwd, 2);
       this.look.y = head.y + Math.sin(pitch) * 2;
     }
     if (this.shake > 0) {

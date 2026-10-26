@@ -10,7 +10,7 @@ export const PRESETS = {
 export const ACTIONS = [
   ['forward', 'Move forward', 'KeyW'], ['back', 'Move back', 'KeyS'], ['left', 'Move left', 'KeyA'], ['right', 'Move right', 'KeyD'],
   ['run', 'Run', 'ShiftLeft'], ['crouch', 'Crouch', 'KeyC'], ['crawl', 'Crawl', 'KeyX'], ['interact', 'Interact (hold)', 'KeyE'],
-  ['skill', 'Skill check / struggle', 'Space'], ['candle', 'Hold candle', 'KeyF'], ['placeCandle', 'Place / pick up candle', 'KeyG'],
+  ['skill', 'Skill check / struggle / jump', 'Space'], ['jump', 'Jump (extra key)', 'KeyJ'], ['candle', 'Hold candle', 'KeyF'], ['placeCandle', 'Place / pick up candle', 'KeyG'],
   ['toggleCandle', 'Light / snuff candle', 'KeyV'], ['special', 'Monster special', 'KeyQ'], ['trap', 'Set trap', 'KeyT'],
   ['rev', 'Rev chainsaw', 'KeyR'], ['drop', 'Drop survivor', 'KeyZ'], ['map', 'Toggle mini-map', 'KeyM'], ['spectate', 'Spectate toggle', 'Tab'],
 ];

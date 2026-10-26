@@ -16,7 +16,7 @@ export function makeWeapon(type) {
     const cage = mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.16, 6, 1, true), new THREE.MeshStandardMaterial({ color: 0x2a2a2a, wireframe: true, metalness: 0.8 }), 0, -0.1, 0);
     g.add(cage);
     g.add(mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.13, 12), std(0x221100, { emissive: 0x7a1a00, emissiveIntensity: 2, transparent: true, opacity: 0.85 }), 0, -0.1, 0));
-    const l = vlight(0xff3a10, 1.5, 5, 2); l.position.y = -0.1; g.add(l);
+    const l = vlight(0xff3a10, 0.6, 3, 2); l.position.y = -0.1; g.add(l);
   } else if (type === 'axe') {
     g.add(mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.9), wood(), 0, 0.3, 0));
     const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo(0.2, -0.06); s.quadraticCurveTo(0.25, 0.07, 0.2, 0.2); s.lineTo(0, 0.12); s.lineTo(0, 0);
@@ -45,7 +45,7 @@ export function makeCandle(withLight = true) {
   flame.scale.set(1, 2, 1); flame.castShadow = false; g.add(flame);
   g.userData.flame = flame;
   if (withLight) {
-    const light = vlight(0xffa64a, 4, 9, 1.6);
+    const light = vlight(0xffa64a, 2.2, 6, 2);
     light.position.y = 0.2; light.flicker = 1; g.add(light);
     g.userData.light = light;
   }

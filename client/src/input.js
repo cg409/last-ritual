@@ -11,7 +11,7 @@ export class Input {
     this.mouse = { l: false, r: false };
     this.enabled = false;
     this.onSkill = null; this.onToggleMap = null; this.onPause = null;
-    this.spectateNext = false; this.spectating = true;
+    this.spectateNext = false; this.spectating = false; // dead: roam as the mouse; TAB to spectate survivors
     window.addEventListener('keydown', (e) => this.key(e, true));
     window.addEventListener('keyup', (e) => this.key(e, false));
     canvas.addEventListener('mousedown', (e) => this.mouseBtn(e, true));
@@ -41,7 +41,9 @@ export class Input {
     const k = e.code, b = settings().controls.keys;
     if (down && !this.keys.has(k)) {
       for (const a of ['candle', 'placeCandle', 'toggleCandle', 'special', 'trap', 'rev', 'drop']) if (b[a] === k) this.actions.push({ t: a });
-      if (b.skill === k) { this.onSkill?.(); this.actions.push({ t: 'struggle' }); }
+      // SPACE: skill check if one is showing, otherwise struggle (hooked) / jump.
+      if (b.skill === k) { const used = this.onSkill?.(); this.actions.push({ t: 'struggle' }); if (!used) this.actions.push({ t: 'jump' }); }
+      if (b.jump && b.jump !== b.skill && b.jump === k) this.actions.push({ t: 'jump' });
       if (b.left === k || b.right === k) this.actions.push({ t: 'wiggle' });
       if (b.spectate === k) { this.spectating = !this.spectating; e.preventDefault(); }
       if (b.map === k) this.onToggleMap?.();

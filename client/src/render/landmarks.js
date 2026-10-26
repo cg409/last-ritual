@@ -10,11 +10,11 @@ export function buildLamps(scene, map) {
   return map.lamps.map((l) => {
     const g = new THREE.Group(); g.position.set(l.x, 0, l.z);
     const lamp = cloneModel('street_lamp_01'); g.add(lamp);
-    const glass = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffd9a0, emissive: 0xffa040, emissiveIntensity: 2.5 }));
+    const glass = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffd9a0, emissive: 0xffa040, emissiveIntensity: 1.2 }));
     glass.position.set(0, 3.55, 0.12); g.add(glass);
-    const light = vlight(0xffb060, 9, l.r * 2.4, 1.8); light.position.set(0, 3.4, 0.2); light.flicker = 0.15; g.add(light);
+    const light = vlight(0xffb070, 2.2, l.r * 1.5, 2); light.position.set(0, 3.4, 0.2); light.flicker = 0.15; g.add(light);
     scene.add(g);
-    return { g, light, glass, base: 9 };
+    return { g, light, glass, base: 2.2 };
   });
 }
 
@@ -53,8 +53,8 @@ export function makeKey() {
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3), gold); shaft.rotation.z = Math.PI / 2; shaft.position.set(0.24, 0.2, 0); g.add(shaft);
   for (const x of [0.32, 0.38]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.07, 0.02), gold); t.position.set(x, 0.16, 0); g.add(t); }
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.4, 12, 12, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.08, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.035, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
   beam.position.y = 6; g.add(beam);
-  const l = vlight(0xffc050, 3, 6, 1.5); l.position.y = 0.6; g.add(l);
+  const l = vlight(0xffc050, 0.8, 3, 2); l.position.y = 0.6; g.add(l);
   return g;
 }
