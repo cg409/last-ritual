@@ -1,0 +1,16 @@
+# Render Blueprint — deploys the multiplayer server (Socket.IO).
+# The server imports ../shared, so the whole repo is deployed and the server is started from /server.
+services:
+  - type: web
+    name: hollow-vigil-server
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: CLIENT_ORIGIN
+        value: "*"   # after deploying Netlify, set to e.g. https://your-site.netlify.app

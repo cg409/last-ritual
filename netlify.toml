@@ -1,0 +1,20 @@
+# Netlify — builds the Three.js client from /client (it also reads ../shared at build time).
+[build]
+  base = "client"
+  command = "npm install && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Set VITE_SERVER_URL in the Netlify UI (Site settings → Environment variables), e.g.
+  # VITE_SERVER_URL = "https://hollow-vigil-server.onrender.com"
+
+[[headers]]
+  for = "/models/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

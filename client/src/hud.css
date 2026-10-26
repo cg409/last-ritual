@@ -1,0 +1,38 @@
+.hud { position: absolute; inset: 0; pointer-events: none !important; }
+.hud * { pointer-events: none; }
+.hud .tl { position: absolute; top: 18px; left: 22px; }
+.hud .tr { position: absolute; top: 18px; right: 22px; text-align: right; }
+.hud .bl { position: absolute; bottom: 22px; left: 22px; }
+.hud .br { position: absolute; bottom: 22px; right: 22px; text-align: right; }
+.hud .center { position: absolute; top: 62%; left: 50%; transform: translateX(-50%); text-align: center; }
+.hud .banner { position: absolute; top: 14%; left: 0; right: 0; text-align: center; font-family: 'Cinzel'; letter-spacing: .25em; font-size: 22px; text-shadow: 0 0 12px #000, 0 0 3px #000; transition: opacity 1s; }
+.hud .monstername { font-family: 'Cinzel'; font-size: 14px; letter-spacing: .25em; color: var(--blood2); text-shadow: 0 0 8px #000; }
+.hud .tombs { display: flex; gap: 10px; margin-top: 8px; }
+.hud .tomb { width: 34px; height: 44px; border: 1px solid #3b2a2a; border-radius: 14px 14px 2px 2px; position: relative; overflow: hidden; background: rgba(0,0,0,.5); }
+.hud .tomb > div { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(0deg, #6b2a8a, #b07ad1); box-shadow: 0 0 10px #a060d0; }
+.hud .tomb.done { border-color: #b07ad1; box-shadow: 0 0 12px #8a4ac0; }
+.hud .keys { margin-top: 8px; font-family: 'Cinzel'; letter-spacing: .15em; font-size: 14px; color: var(--gold); }
+.hud .surv { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 16px; text-shadow: 0 0 6px #000; }
+.hud .surv .ic { width: 24px; height: 24px; border: 1px solid #777; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.4); }
+.hud .surv .ic span { transform: rotate(-45deg); font-size: 11px; font-family: 'Cinzel'; }
+.hud .surv.hurt .ic { border-color: #c98b2b; } .hud .surv.downed .ic { border-color: var(--blood2); background: rgba(139,15,15,.4); }
+.hud .surv.hooked .ic, .hud .surv.carried .ic { border-color: #e33; background: #600; }
+.hud .surv.mouse { opacity: .35; text-decoration: line-through; } .hud .surv.escaped { color: #8fc46a; }
+.hud .prog { width: 320px; height: 6px; background: rgba(0,0,0,.6); border: 1px solid #333; margin: 8px auto 0; }
+.hud .prog > div { height: 100%; background: var(--bone); }
+.hud .hint { font-size: 15px; color: #cfc4b3; text-shadow: 0 0 6px #000; margin-top: 6px; }
+.hud .key { display: inline-block; border: 1px solid #777; padding: 0 6px; margin: 0 2px; font-family: 'Cinzel'; font-size: 12px; background: rgba(0,0,0,.4); }
+.hud .feed { position: absolute; top: 140px; right: 22px; text-align: right; font-size: 15px; }
+.hud .feed div { animation: fadeIn .4s; text-shadow: 0 0 6px #000; margin-bottom: 4px; }
+.hud .ab { display: inline-flex; flex-direction: column; align-items: center; margin-left: 10px; }
+.hud .ab .box { width: 60px; height: 60px; border: 1px solid #666; display: flex; align-items: center; justify-content: center; text-align: center; font-family: 'Cinzel'; background: rgba(0,0,0,.55); font-size: 11px; }
+.hud .ab .box.cd { opacity: .4; } .hud .ab .box.sealed { border-color: #6b2a8a; opacity: .3; text-decoration: line-through; }
+.hud .ab small { font-size: 11px; margin-top: 3px; color: #aaa; }
+.hud .sawdir { position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; margin: -150px; border-radius: 50%; }
+.hud .sawdir div { position: absolute; top: -10px; left: 50%; width: 40px; height: 40px; margin-left: -20px; background: radial-gradient(circle, rgba(220,30,30,.85), transparent 70%); }
+.hud .skill { position: absolute; top: 50%; left: 50%; width: 150px; height: 150px; margin: -75px; }
+.hud .flash { position: absolute; inset: 0; background: #dfe8ff; opacity: 0; transition: opacity .7s; }
+.hud .bloodfx { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(120,0,0,.6) 100%); opacity: 0; transition: opacity .4s; }
+.hud .spect { position: absolute; bottom: 90px; left: 0; right: 0; text-align: center; font-family: 'Cinzel'; letter-spacing: .2em; }
+.hud .help { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #8a8072; text-shadow: 0 0 4px #000; white-space: nowrap; }
+.hud .minimapwrap { position: absolute; bottom: 70px; right: 22px; }
