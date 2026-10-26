@@ -67,7 +67,7 @@ export class Fx {
     for (const tw of objs.towers) {
       const since = t - (this.screech.get(tw.id) ?? -99);
       const k = since < 2.5 ? 1 - since / 2.5 : 0;
-      tw.crows.forEach((c) => animateCrow(c, t, k));
+      tw.crows.forEach((c) => animateCrow(c, t, k, dt));
     }
     this.sync(this.keys, s.keys.filter((k) => !k.taken), () => makeKey(), (o, k) => { o.position.set(k.x, 0.3 + Math.sin(t * 2) * 0.1, k.z); o.rotation.y = t; o.visible = !amMonster || true; });
     this.sync(this.candles, s.candles, () => makeCandle(), (o, c) => {
@@ -97,9 +97,10 @@ export class Fx {
     const seer = amMonster && mon.monster === 'puppeteer';
     const st = v.stage;
     const kb = seer ? this.blackK * 0.3 : this.blackK;
-    st.moon.intensity = st.baseMoon * (1 - kb * 0.88);
-    st.hemi.intensity = st.baseHemi * (1 - kb * 0.85) + (amMonster ? 0.4 : 0);
-    st.scene.fog.density = 0.035 + kb * 0.07 - (amMonster ? 0.008 : 0);
+    st.moon.intensity = st.baseMoon * (1 - kb * 0.9);
+    st.hemi.intensity = st.baseHemi * (1 - kb * 0.85) + (amMonster ? 0.25 : 0);
+    st.scene.fog.density = st.baseFog + kb * 0.07 - (amMonster ? 0.006 : 0);
+    st.sky.setDark(kb);
     st.scene.fog.color.copy(st.fogColor).multiplyScalar(1 - kb * 0.85);
     st.scene.background.copy(st.scene.fog.color);
     // Lightning flash

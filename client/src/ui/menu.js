@@ -2,7 +2,7 @@
 import { GAME_NAME, MONSTERS } from '@shared/constants.js';
 import { show, on, q, esc } from './dom.js';
 
-export function mainMenu({ onSingle, onMulti, onHow, name, onName }) {
+export function mainMenu({ onSingle, onMulti, onHow, onSettings, name, onName }) {
   show(`
     <div class="screen">
       <div class="title">${GAME_NAME}</div>
@@ -11,6 +11,7 @@ export function mainMenu({ onSingle, onMulti, onHow, name, onName }) {
         <button class="btn" id="sp">Singleplayer</button>
         <button class="btn" id="mp">Multiplayer</button>
         <button class="btn" id="how">The Rites</button>
+        <button class="btn" id="set">Settings</button>
       </div>
       <div style="margin-top:36px;width:280px" class="col">
         <input class="field" id="nm" maxlength="16" placeholder="Your name" value="${esc(name)}" />
@@ -18,12 +19,12 @@ export function mainMenu({ onSingle, onMulti, onHow, name, onName }) {
       <div class="foot">WASD · SHIFT · E · SPACE &nbsp;—&nbsp; headphones recommended</div>
     </div>`);
   q('#nm').addEventListener('input', (e) => onName(e.target.value));
-  on('#sp', 'click', onSingle); on('#mp', 'click', onMulti); on('#how', 'click', onHow);
+  on('#sp', 'click', onSingle); on('#mp', 'click', onMulti); on('#how', 'click', onHow); on('#set', 'click', onSettings);
 }
 
 const TIPS = [
   'The Mimic casts no shadow. Look down before you trust a friend.',
-  'Crows remember every face. Crouch beneath the towers.',
+  'Crows remember every face. Crouch when you pass the bollards.',
   'When the chainsaw roars, the whole realm hears it — listen for where.',
   'In the Puppeteer\'s darkness, stillness is the only light.',
   'If your shadow flickers, run. The Stalker is already beside you.',

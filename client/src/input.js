@@ -1,8 +1,7 @@
-// Keyboard + mouse controls. Produces camera-relative movement and one-shot actions.
-//  WASD move · Shift run · C/Ctrl crouch · X crawl · E (hold) interact · Space skill check
-//  F hold/lower candle · G place / pick up candle · V light/snuff a nearby candle
-//  Monster: LMB attack · RMB (hold) aim trident/string · Q special · T set trap · R rev chainsaw · Z drop
-//  Carried: A/D wiggle · Hooked: Space struggle · Spectating: LMB next survivor, Tab toggle follow
+// Keyboard + mouse controls with rebindable keys (see settings.js). Produces camera-relative movement
+// and one-shot actions in the same packet format the server and bots use.
+import { settings } from './settings.js';
+
 export class Input {
   constructor(canvas) {
     this.canvas = canvas;
@@ -11,37 +10,41 @@ export class Input {
     this.actions = [];
     this.mouse = { l: false, r: false };
     this.enabled = false;
-    this.onSkill = null;
+    this.onSkill = null; this.onToggleMap = null; this.onPause = null;
     this.spectateNext = false; this.spectating = true;
-    this.sens = 0.0024;
-    const kd = (e) => this.key(e, true), ku = (e) => this.key(e, false);
-    window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
+    window.addEventListener('keydown', (e) => this.key(e, true));
+    window.addEventListener('keyup', (e) => this.key(e, false));
     canvas.addEventListener('mousedown', (e) => this.mouseBtn(e, true));
     window.addEventListener('mouseup', (e) => this.mouseBtn(e, false));
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mousemove', (e) => {
       if (!this.enabled || document.pointerLockElement !== canvas) return;
-      this.yaw -= e.movementX * this.sens;
-      this.pitch = Math.max(-1.1, Math.min(0.9, this.pitch - e.movementY * this.sens));
+      const c = settings().controls, sens = 0.0024 * c.sensitivity;
+      this.yaw -= e.movementX * sens;
+      this.pitch = Math.max(-1.1, Math.min(0.9, this.pitch - e.movementY * sens * (c.invertY ? -1 : 1)));
     });
     window.addEventListener('blur', () => this.keys.clear());
   }
 
+  bind(action) { return settings().controls.keys[action]; }
+  down(action) { return this.keys.has(this.bind(action)); }
+
   lock() {
     if (!this.enabled || document.pointerLockElement === this.canvas) return;
-    try { const p = this.canvas.requestPointerLock?.(); p?.catch?.(() => {}); } catch { /* needs a user gesture; next click locks */ }
+    try { const p = this.canvas.requestPointerLock?.(); p?.catch?.(() => {}); } catch { /* needs a user gesture */ }
   }
 
   key(e, down) {
-    if (!this.enabled) return;
     if (e.target && e.target.tagName === 'INPUT') return;
-    const k = e.code;
+    if (down && e.code === 'Escape' && this.enabled) { this.onPause?.(); return; }
+    if (!this.enabled) return;
+    const k = e.code, b = settings().controls.keys;
     if (down && !this.keys.has(k)) {
-      const once = { KeyF: 'candle', KeyG: 'placeCandle', KeyV: 'toggleCandle', KeyQ: 'special', KeyT: 'trap', KeyR: 'rev', KeyZ: 'drop' }[k];
-      if (once) this.actions.push({ t: once });
-      if (k === 'Space') { this.onSkill?.(); this.actions.push({ t: 'struggle' }); }
-      if (k === 'KeyA' || k === 'KeyD') this.actions.push({ t: 'wiggle' });
-      if (k === 'Tab') { this.spectating = !this.spectating; e.preventDefault(); }
+      for (const a of ['candle', 'placeCandle', 'toggleCandle', 'special', 'trap', 'rev', 'drop']) if (b[a] === k) this.actions.push({ t: a });
+      if (b.skill === k) { this.onSkill?.(); this.actions.push({ t: 'struggle' }); }
+      if (b.left === k || b.right === k) this.actions.push({ t: 'wiggle' });
+      if (b.spectate === k) { this.spectating = !this.spectating; e.preventDefault(); }
+      if (b.map === k) this.onToggleMap?.();
     }
     if (['Space', 'Tab', 'ControlLeft'].includes(k)) e.preventDefault();
     if (down) this.keys.add(k); else this.keys.delete(k);
@@ -54,26 +57,23 @@ export class Input {
     if (e.button === 2) { if (!down && this.mouse.r) this.actions.push({ t: 'aimRelease' }); this.mouse.r = down; }
   }
 
-  // Build the input packet (movement relative to camera yaw).
   sample() {
-    const k = this.keys;
     let f = 0, s = 0;
-    if (k.has('KeyW') || k.has('ArrowUp')) f += 1;
-    if (k.has('KeyS') || k.has('ArrowDown')) f -= 1;
-    if (k.has('KeyA') || k.has('ArrowLeft')) s += 1;
-    if (k.has('KeyD') || k.has('ArrowRight')) s -= 1;
+    if (this.down('forward') || this.keys.has('ArrowUp')) f += 1;
+    if (this.down('back') || this.keys.has('ArrowDown')) f -= 1;
+    if (this.down('left') || this.keys.has('ArrowLeft')) s += 1;
+    if (this.down('right') || this.keys.has('ArrowRight')) s -= 1;
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     let mx = sin * f + cos * s, mz = cos * f - sin * s;
     const l = Math.hypot(mx, mz); if (l > 1) { mx /= l; mz /= l; }
-    const pkt = {
+    return {
       mx, mz, face: this.yaw,
-      run: k.has('ShiftLeft') || k.has('ShiftRight'),
-      crouch: k.has('KeyC') || k.has('ControlLeft'),
-      crawl: k.has('KeyX'),
-      interact: k.has('KeyE'),
+      run: this.down('run') || this.keys.has('ShiftRight'),
+      crouch: this.down('crouch') || this.keys.has('ControlLeft'),
+      crawl: this.down('crawl'),
+      interact: this.down('interact'),
       aim: this.mouse.r,
       actions: this.actions.splice(0),
     };
-    return pkt;
   }
 }

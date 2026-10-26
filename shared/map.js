@@ -1,25 +1,27 @@
 // Procedural realm generation shared by server (authority, bots) and client (rendering).
+// Layout: walk-in mansion in the centre, 2 farmhouses, dense dead forest, rock clusters,
+// wrecks/crates/barrels, 4 crow bollards, gallows, lamps, 3 tombs and a tall perimeter wall.
 import { makeRng, dist } from './rng.js';
 import { MAP_SIZE, TOMB_COUNT } from './constants.js';
 import { buildNav } from './nav.js';
+import { makeBuilding, addBuildingColliders } from './buildings.js';
+import { scatterClutter, scatterNature } from './clutter.js';
 export { collide, lineOfSight, findPath, inGrass, randomWalkable } from './nav.js';
 
 const H = MAP_SIZE / 2;
+export const BOUNDARY_WALL = { height: 9, thickness: 2.4 };
 
 export function generateMap(seed) {
   const rng = makeRng(seed);
   const map = {
     seed, size: MAP_SIZE,
-    rects: [],   // {x,z,hw,hd,h,type}  axis-aligned solid boxes
-    circles: [], // {x,z,r,h,type}       trees, rocks, pillars
-    grass: [],   // {x,z,r}              camouflage patches
+    rects: [], circles: [], grass: [], props: [], buildings: [],
     tombs: [], hooks: [], towers: [], lamps: [], keySpots: [], spawns: [],
     exit: null, monsterSpawn: null,
   };
-  const occupied = []; // {x,z,r} reserved areas
-  const free = (x, z, r) => Math.abs(x) < H - 6 && Math.abs(z) < H - 6 &&
-    occupied.every((o) => dist(x, z, o.x, o.z) > o.r + r);
-  const place = (r, tries = 200, minEdge = 8) => {
+  const occupied = [];
+  const free = (x, z, r) => Math.abs(x) < H - 5 && Math.abs(z) < H - 5 && occupied.every((o) => dist(x, z, o.x, o.z) > o.r + r);
+  const place = (r, tries = 300, minEdge = 8) => {
     for (let i = 0; i < tries; i++) {
       const x = rng.range(-H + minEdge, H - minEdge), z = rng.range(-H + minEdge, H - minEdge);
       if (free(x, z, r)) { occupied.push({ x, z, r }); return { x, z }; }
@@ -27,106 +29,83 @@ export function generateMap(seed) {
     return null;
   };
 
-  // Central manor ruin (landmark)
-  occupied.push({ x: 0, z: 0, r: 14 });
-  const manor = [
-    [0, -9, 10, 0.5], [-9.5, 0, 0.5, 9], [9.5, -4, 0.5, 5], [-4, 9, 6, 0.5], [6, 9, 3, 0.5],
-    [0, 0, 3, 0.5], [3, 4, 0.5, 2.5],
-  ];
-  for (const [x, z, hw, hd] of manor) map.rects.push({ x, z, hw, hd, h: 4.5, type: 'stone' });
+  // Central mansion: walk-in, windows to look through, several doors, interior rooms.
+  const mansion = makeBuilding({
+    id: 'mansion', type: 'mansion', x: 0, z: 0, w: 19.2, d: 14.4, floors: 2,
+    sides: { n: 'WOWODOWOW', s: 'WOWODOWOW', e: 'WODOWW', w: 'WOWDOW' },
+    inner: [[-2.4, -7.2, -2.4, -1.2, 'WWD'], [-9.6, 1.2, -2.4, 1.2, 'WDW'], [2.4, 1.2, 9.6, 1.2, 'WDW'], [2.4, 1.2, 2.4, 7.2, 'DWW']],
+    porch: { side: 's', w: 7.2, d: 2.6 },
+  });
+  map.buildings.push(mansion); addBuildingColliders(map, mansion);
+  occupied.push({ x: 0, z: 0, r: 15 });
 
-  // Exit door on the north edge
-  const ex = rng.range(-H + 20, H - 20);
-  map.exit = { x: ex, z: -H + 1.2, rot: 0 };
-  occupied.push({ x: ex, z: -H + 4, r: 6 });
+  const ex = rng.range(-H + 22, H - 22);
+  map.exit = { x: ex, z: -H - 0.2, rot: 0 }; // gatehouse sits in the wall line
+  occupied.push({ x: ex, z: -H + 5, r: 7 });
 
-  // Tombs — spread far apart (triangle around the map)
   const baseAng = rng.range(0, Math.PI * 2);
   for (let i = 0; i < TOMB_COUNT; i++) {
-    const a = baseAng + (i * Math.PI * 2) / TOMB_COUNT;
-    const rr = rng.range(H * 0.55, H * 0.7);
+    const a = baseAng + (i * Math.PI * 2) / TOMB_COUNT, rr = rng.range(H * 0.55, H * 0.68);
     const x = Math.cos(a) * rr, z = Math.sin(a) * rr;
-    occupied.push({ x, z, r: 6 });
+    occupied.push({ x, z, r: 6.5 });
     map.tombs.push({ id: i, x, z, rot: rng.range(0, Math.PI * 2) });
     map.rects.push({ x, z, hw: 1.1, hd: 0.7, h: 1.1, type: 'tomb', low: true });
-    // broken pillars around each tomb
     for (let k = 0; k < 4; k++) {
       const pa = (k / 4) * Math.PI * 2 + 0.4;
-      map.circles.push({ x: x + Math.cos(pa) * 4, z: z + Math.sin(pa) * 4, r: 0.45, h: rng.range(1.5, 3.5), type: 'pillar' });
+      map.circles.push({ x: x + Math.cos(pa) * 4.2, z: z + Math.sin(pa) * 4.2, r: 0.45, h: rng.range(1.5, 3.5), type: 'pillar' });
     }
   }
 
-  // Crow towers
-  for (let i = 0; i < 6; i++) {
-    const p = place(4, 300, 12); if (!p) continue;
-    const crows = [];
-    for (let c = 0; c < 4; c++) crows.push({ id: `${i}-${c}`, a: (c / 4) * Math.PI * 2 });
-    map.towers.push({ id: i, x: p.x, z: p.z, h: rng.range(9, 12), crows });
-    map.rects.push({ x: p.x, z: p.z, hw: 1.6, hd: 1.6, h: 10, type: 'tower' });
+  // Two single-storey farmhouses.
+  for (let i = 0; i < 2; i++) {
+    const p = place(10, 400, 18); if (!p) continue;
+    const b = makeBuilding({
+      id: 'house' + i, type: 'house', style: 'farmhouse', x: p.x, z: p.z, w: 9.6, d: 7.2, floors: 1,
+      sides: { n: 'WOWW', s: 'WDOW', e: 'WOW', w: 'ODO' }, inner: [[0, -3.6, 0, 1.2, 'WD']],
+      porch: { side: 's', w: 4.8, d: 2 },
+    });
+    map.buildings.push(b); addBuildingColliders(map, b);
   }
 
-  // Hanging gallows (hooks)
-  for (let i = 0; i < 13; i++) {
+  // Four stone bollards, each with one crow.
+  for (let i = 0; i < 4; i++) {
+    const p = place(5, 400, 14); if (!p) continue;
+    map.towers.push({ id: i, x: p.x, z: p.z, h: 1.6, crows: [{ id: `${i}-0`, a: rng.range(0, Math.PI * 2) }] });
+    map.circles.push({ x: p.x, z: p.z, r: 0.45, h: 1.6, type: 'bollard' });
+  }
+  for (let i = 0; i < 12; i++) {
     const p = place(3, 300, 8); if (!p) continue;
     map.hooks.push({ id: i, x: p.x, z: p.z, rot: rng.range(0, Math.PI * 2) });
     map.circles.push({ x: p.x, z: p.z, r: 0.3, h: 3.2, type: 'hookpost' });
   }
-
-  // Lamps — permanently lit areas (Mimic weakness)
   for (let i = 0; i < 6; i++) {
     const p = place(3, 300, 8); if (!p) continue;
     map.lamps.push({ id: i, x: p.x, z: p.z, r: 6 });
-    map.circles.push({ x: p.x, z: p.z, r: 0.2, h: 3, type: 'lamppost' });
+    map.circles.push({ x: p.x, z: p.z, r: 0.2, h: 3.9, type: 'lamppost' });
   }
 
-  // Sheds / ruined walls (loops, like DbD jungle-gyms)
-  for (let i = 0; i < 16; i++) {
-    const p = place(5, 200, 8); if (!p) continue;
-    const kind = rng();
-    if (kind < 0.5) { // L-shaped wall
-      const s = rng() < 0.5 ? 1 : -1;
-      map.rects.push({ x: p.x, z: p.z, hw: 3.5, hd: 0.35, h: 2.6, type: 'wall' });
-      map.rects.push({ x: p.x + 3.2 * s, z: p.z + 2.5, hw: 0.35, hd: 2.5, h: 2.6, type: 'wall' });
-    } else if (kind < 0.8) { // shed
-      map.rects.push({ x: p.x, z: p.z, hw: 2.4, hd: 1.8, h: 3, type: 'shed' });
-    } else { // fence line
-      map.rects.push({ x: p.x, z: p.z, hw: rng() < 0.5 ? 4 : 0.2, hd: 0.2, h: 1.1, type: 'fence', low: true });
-    }
-  }
+  scatterClutter(map, rng, place, free, occupied, H);
+  scatterNature(map, rng, free, occupied, H);
 
-  // Rocks
-  for (let i = 0; i < 30; i++) {
-    const p = place(1.5, 100, 4); if (!p) continue;
-    map.circles.push({ x: p.x, z: p.z, r: rng.range(0.8, 1.8), h: rng.range(0.9, 2.2), type: 'rock' });
-  }
-  // Dead trees
-  for (let i = 0; i < 110; i++) {
-    const x = rng.range(-H + 3, H - 3), z = rng.range(-H + 3, H - 3);
-    if (!free(x, z, 1.2)) continue;
-    occupied.push({ x, z, r: 0.8 });
-    map.circles.push({ x, z, r: rng.range(0.3, 0.55), h: rng.range(7, 12), type: 'tree' });
-  }
-  // Tall grass / corn patches (no collision, camouflage)
-  for (let i = 0; i < 28; i++) {
-    const x = rng.range(-H + 6, H - 6), z = rng.range(-H + 6, H - 6);
-    if (!free(x, z, 3)) continue;
-    map.grass.push({ x, z, r: rng.range(3, 6) });
-  }
-
-  // Key spots & spawns
-  for (let i = 0; i < 12; i++) { const p = place(1.5, 200, 8); if (p) map.keySpots.push(p); }
+  for (let i = 0; i < 14; i++) { const p = place(1.5, 200, 8); if (p) map.keySpots.push(p); }
   const sa = rng.range(0, Math.PI * 2);
   for (let i = 0; i < 5; i++) {
-    const x = Math.cos(sa) * H * 0.82 + (i - 2) * 2.2, z = Math.sin(sa) * H * 0.82;
+    const x = Math.cos(sa) * H * 0.8 + (i - 2) * 2.2, z = Math.sin(sa) * H * 0.8;
     map.spawns.push({ x: Math.max(-H + 5, Math.min(H - 5, x)), z: Math.max(-H + 5, Math.min(H - 5, z)) });
   }
-  map.monsterSpawn = { x: -Math.cos(sa) * H * 0.75, z: -Math.sin(sa) * H * 0.75 };
+  map.monsterSpawn = { x: -Math.cos(sa) * H * 0.72, z: -Math.sin(sa) * H * 0.72 };
 
-  // Boundary walls
-  map.rects.push({ x: 0, z: -H - 1, hw: H + 2, hd: 1, h: 6, type: 'boundary' });
-  map.rects.push({ x: 0, z: H + 1, hw: H + 2, hd: 1, h: 6, type: 'boundary' });
-  map.rects.push({ x: -H - 1, z: 0, hw: 1, hd: H + 2, h: 6, type: 'boundary' });
-  map.rects.push({ x: H + 1, z: 0, hw: 1, hd: H + 2, h: 6, type: 'boundary' });
+  // Tall, thick perimeter wall.
+  const { height: wh, thickness: wt } = BOUNDARY_WALL;
+  // North wall is split around the exit gatehouse (gap closed by the gate pillars below).
+  const gx0 = ex - 3.1, gx1 = ex + 3.1, west = -H - wt, east = H + wt;
+  map.rects.push({ x: (west + gx0) / 2, z: -H - wt / 2, hw: (gx0 - west) / 2, hd: wt / 2, h: wh, type: 'boundary' });
+  map.rects.push({ x: (gx1 + east) / 2, z: -H - wt / 2, hw: (east - gx1) / 2, hd: wt / 2, h: wh, type: 'boundary' });
+  map.rects.push({ x: ex, z: -H - wt - 1, hw: 3.2, hd: 0.5, h: wh, type: 'boundary' }); // behind the gate (can't leave the map)
+  for (const s of [-1, 1]) map.rects.push({ x: ex + s * 3.7, z: map.exit.z, hw: 0.7, hd: 1.3, h: 7, type: 'gatepost' });
+  map.rects.push({ x: 0, z: H + wt / 2, hw: H + wt, hd: wt / 2, h: wh, type: 'boundary' });
+  map.rects.push({ x: -H - wt / 2, z: 0, hw: wt / 2, hd: H + wt, h: wh, type: 'boundary' });
+  map.rects.push({ x: H + wt / 2, z: 0, hw: wt / 2, hd: H + wt, h: wh, type: 'boundary' });
 
   buildNav(map);
   return map;

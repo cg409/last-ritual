@@ -10,7 +10,7 @@ export const MONSTERS = {
   },
   wanderer: {
     id: 'wanderer', name: 'THE WANDERER', color: 0x3b2f2a, weapon: 'axe', specialCd: 35,
-    special: 'Crow Sight [Q]: crows on the towers screech when they see a survivor. Teleport to the last screeching crow. Failed enchantments are revealed to it.',
+    special: 'Crow Sight [Q]: crows perched on the stone bollards screech when they see a survivor. Teleport to the last screeching crow. Failed enchantments are revealed to it.',
     passive: 'Strikes with a woodsman axe, then carries the victim away.',
     weakness: 'The crow teleport has a long cooldown.',
     counter: 'Keep clear of crows (crouching sneaks past them) and never fail an enchantment.',

@@ -3,7 +3,7 @@ import { SURVIVOR } from './constants.js';
 import { dist } from './rng.js';
 import { onTombEnchanted } from './world.js';
 
-const ENCHANT_R = 2.4, HELP_R = 1.8, DOOR_R = 4;
+const ENCHANT_R = 2.4, HELP_R = 1.8, DOOR_R = 5;
 
 export function doInteract(g, p, dt) {
   const s = g.state;

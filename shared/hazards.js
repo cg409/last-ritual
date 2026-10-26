@@ -26,8 +26,8 @@ export function updateCrows(g) {
     for (const p of g.survivors()) {
       if (p.state !== 'alive' || p.crouch || p.crawl) continue;
       const d = dist(p.x, p.z, t.x, t.z);
-      if (d > 15) continue;
-      if (d > 6 && !lineOfSight(g.map, t.x + 2.2, t.z + 2.2, p.x, p.z) && !lineOfSight(g.map, t.x - 2.2, t.z - 2.2, p.x, p.z)) continue;
+      if (d > 13) continue;
+      if (d > 3 && !lineOfSight(g.map, t.x + Math.sign(p.x - t.x) * 0.6, t.z + Math.sign(p.z - t.z) * 0.6, p.x, p.z)) continue;
       t.screamAt = g.time;
       g.lastScreech = { tower: t.id, x: t.x, z: t.z, at: g.time };
       g.emit({ t: 'crows', tower: t.id, x: t.x, z: t.z });

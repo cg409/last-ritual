@@ -16,7 +16,7 @@ export function prompts(s, me, view) {
       r.text = label; r.prog = me.actT; return r;
     }
     const near = (x, z, d) => dist(me.x, me.z, x, z) < d;
-    if (me.keys && !s.door.open && near(s.door.x, s.door.z, 4)) r.text = `${K('E')} Place keys in the gate`;
+    if (me.keys && !s.door.open && near(s.door.x, s.door.z, 5)) r.text = `${K('E')} Place keys in the gate`;
     else if (s.players.some((p) => p.state === 'hooked' && near(p.x, p.z, 2.4))) r.text = `${K('E')} Cut them down`;
     else if (s.players.some((p) => p.id !== me.id && p.role === 'survivor' && (p.state === 'downed' || (p.state === 'alive' && p.health === 1)) && near(p.x, p.z, 1.8))) r.text = `${K('E')} Heal`;
     else if (s.tombs.some((t) => !t.done && near(t.x, t.z, 2.4))) r.text = `${K('E')} Enchant the tomb`;

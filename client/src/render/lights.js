@@ -35,7 +35,10 @@ export class LightPool {
     }
     this.tmp = new THREE.Vector3();
     this.enabled = true;
+    this.size = size;
   }
+
+  setSize(n) { this.size = Math.min(n, this.lights.length); }
 
   update(camPos, t) {
     const cands = [];
@@ -52,7 +55,7 @@ export class LightPool {
       cands.sort((a, b) => a.score - b.score);
     }
     this.lights.forEach((l, i) => {
-      const c = cands[i];
+      const c = i < this.size ? cands[i] : null;
       if (!c) { l.intensity = 0; return; }
       l.position.copy(c.pos);
       l.color.copy(c.v.color);

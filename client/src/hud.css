@@ -35,4 +35,8 @@
 .hud .bloodfx { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(120,0,0,.6) 100%); opacity: 0; transition: opacity .4s; }
 .hud .spect { position: absolute; bottom: 90px; left: 0; right: 0; text-align: center; font-family: 'Cinzel'; letter-spacing: .2em; }
 .hud .help { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #8a8072; text-shadow: 0 0 4px #000; white-space: nowrap; }
-.hud .minimapwrap { position: absolute; bottom: 70px; right: 22px; }
+.hud .minimap { position: absolute; top: 120px; left: 22px; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,.9); opacity: .92; }
+.hud .stamina { width: 160px; height: 4px; background: rgba(0,0,0,.6); margin-top: 6px; }
+.hud .stamina > div { height: 100%; background: #cfc4b3; transition: width .1s; }
+.hud .stamina.ex > div { background: #c21d1d; }
+.hud .fps { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font: 12px monospace; color: #8fc46a; }

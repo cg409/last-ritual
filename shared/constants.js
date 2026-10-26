@@ -12,7 +12,9 @@ export const SURVIVOR = {
   hangTime: 60, rescueTime: 1.5, enchantRate: 1 / 70, // ~70s solo per tomb
 };
 
-export const MONSTER_BASE = { speed: 4.4, attackRange: 2.6, attackCd: 2.2, carrySpeed: 3.6, traps: 3 };
+// Monster top speed equals a running survivor (4.0); survivors can't outrun it in the open,
+// they must use loops, windows, grass and darkness. Survivors tire: running drains stamina.
+export const MONSTER_BASE = { speed: 4.0, attackRange: 2.6, attackCd: 2.2, carrySpeed: 3.4, traps: 3 };
 
 // Survivor skins — each one can only be used by one player in a match.
 export const SKINS = [

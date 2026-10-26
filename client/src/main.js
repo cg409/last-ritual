@@ -15,6 +15,11 @@ import { LocalSession } from './session.js';
 import { Match } from './match.js';
 import { setupMultiplayer } from './multiplayer.js';
 import { SKINS, MONSTER_IDS, BOT_NAMES, MAX_PLAYERS, TRAPS } from '@shared/constants.js';
+import { settingsPanel } from './ui/settingsMenu.js';
+import { show } from './ui/dom.js';
+import { loadModels, ALL_MODELS, setAnisotropy } from './render/assets.js';
+import { loadCrowAssets } from './render/crow.js';
+import { graphics } from './settings.js';
 
 const stage = new Stage(document.getElementById('game'));
 const input = new Input(stage.renderer.domElement);
@@ -44,6 +49,7 @@ function toMenu() {
     name: app.name,
     onName: (v) => { app.name = v.slice(0, 16); localStorage.setItem('hv-name', app.name); },
     onSingle: singleLobby, onMulti: () => mp.multiEntry(), onHow: () => howTo(toMenu),
+    onSettings: () => { const ui = show('<div class="screen" id="setwrap"></div>'); settingsPanel(ui.querySelector('#setwrap'), toMenu); },
   });
 }
 
@@ -101,7 +107,15 @@ const mp = setupMultiplayer(app, { toMenu, startMatch, preview, savePrefs });
 window.addEventListener('pointerdown', () => { initAudio(); if (!app.match) startAmbience(0.6); }, { once: true });
 (async () => {
   const ld = loadingScreen('Waking the dead');
-  try { await loadCharacterAssets((k) => ld.progress(k)); } catch (e) { ld.text('Failed to load models: ' + e.message); return; }
+  try {
+    setAnisotropy(graphics().anisotropy);
+    let a = 0, b = 0;
+    await Promise.all([
+      loadCharacterAssets((k) => { a = k; ld.progress(a * 0.3 + b * 0.7); }),
+      loadModels(ALL_MODELS, (k) => { b = k; ld.progress(a * 0.3 + b * 0.7); }),
+      loadCrowAssets(),
+    ]);
+  } catch (e) { ld.text('Failed to load assets: ' + e.message); return; }
   app.menuScene = new MenuScene(stage);
   requestAnimationFrame(loop);
   toMenu();

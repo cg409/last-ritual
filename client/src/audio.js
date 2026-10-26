@@ -1,12 +1,21 @@
 // Fully procedural Web Audio: dark ambience drone, wind, heartbeat (terror radius) and SFX (sfx.js).
-let ctx = null, master = null, amb = null;
+import { settings, onSettings } from './settings.js';
+let ctx = null, master = null, sfxBus = null, musicBus = null, amb = null;
 export const now = () => ctx.currentTime;
 export const getCtx = () => ctx;
 
 export function initAudio() {
   if (ctx) { ctx.resume(); return; }
   ctx = new (window.AudioContext || window.webkitAudioContext)();
-  master = ctx.createGain(); master.gain.value = 0.7; master.connect(ctx.destination);
+  master = ctx.createGain(); master.connect(ctx.destination);
+  sfxBus = ctx.createGain(); sfxBus.connect(master);
+  musicBus = ctx.createGain(); musicBus.connect(master);
+  applyVolumes(); onSettings(applyVolumes);
+}
+function applyVolumes() {
+  if (!ctx) return;
+  const a = settings().audio;
+  master.gain.value = a.master; sfxBus.gain.value = a.sfx; musicBus.gain.value = a.music;
 }
 
 export function noiseBuffer(sec = 2) {
@@ -17,7 +26,7 @@ export function noiseBuffer(sec = 2) {
 export function out(pan = 0, gain = 1) {
   const g = ctx.createGain(); g.gain.value = gain;
   const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan));
-  g.connect(p).connect(master); return g;
+  g.connect(p).connect(sfxBus); return g;
 }
 export function tone(freq, dur, type = 'sine', vol = 0.3, pan = 0, slide = 0) {
   if (!ctx) return;
@@ -38,7 +47,7 @@ export function noise(dur, filterF, vol = 0.3, pan = 0, type = 'bandpass', q = 1
 
 export function startAmbience(level = 1) {
   if (!ctx || amb) return;
-  amb = { g: ctx.createGain(), nodes: [] }; amb.g.gain.value = 0; amb.g.connect(master);
+  amb = { g: ctx.createGain(), nodes: [] }; amb.g.gain.value = 0; amb.g.connect(musicBus);
   amb.g.gain.linearRampToValueAtTime(0.35 * level, now() + 3);
   for (const f of [43.65, 44.1, 65.4, 97.9]) {
     const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;

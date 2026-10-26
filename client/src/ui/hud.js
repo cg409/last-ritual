@@ -3,6 +3,7 @@ import { MONSTERS, SKINS } from '@shared/constants.js';
 import { show, q, esc, hex } from './dom.js';
 import { prompts } from './prompts.js';
 import { abilitiesHtml } from './abilities.js';
+import { settings } from '../settings.js';
 
 const STATE_ICON = { alive: '♥', downed: '✚', hooked: '☠', carried: '⛓', mouse: '·', escaped: '✓' };
 
@@ -22,9 +23,19 @@ export class Hud {
       <div class="help" id="h-help"></div>
       <div class="bloodfx" id="h-blood"></div>
       <div class="flash" id="h-flash"></div>
+      <div class="fps" id="h-fps"></div>
     </div>`);
+    this.fpsAcc = 0; this.fpsN = 0;
     this.el = (id) => q('#h-' + id);
     this.bannerT = null; this.feed = [];
+  }
+
+  fps(dt) {
+    this.fpsAcc += dt; this.fpsN++;
+    if (this.fpsAcc < 0.5) return;
+    const el = this.el('fps');
+    if (el) el.textContent = settings().video.showFps ? `${Math.round(this.fpsN / this.fpsAcc)} FPS` : '';
+    this.fpsAcc = 0; this.fpsN = 0;
   }
 
   banner(text, ms = 3500, color = '#e8ddd0') {
@@ -65,7 +76,8 @@ export class Hud {
     this.el('center').innerHTML = (pr.text ? `<div class="hint">${pr.text}</div>` : '') + (pr.prog != null ? `<div class="prog"><div style="width:${Math.round(pr.prog * 100)}%"></div></div>` : '');
     this.el('me').innerHTML = me.role === 'survivor' && !['mouse', 'escaped'].includes(me.state)
       ? `<div class="hint">Candles: ${me.candles.map((c, i) => `<span style="color:${i === 0 && me.holding ? '#ffd080' : '#a08060'}">🕯${Math.round(c)}s</span>`).join(' ') || '<i>none</i>'}${me.keys ? ` · <span style="color:#d4a840">🗝 ×${me.keys}</span>` : ''}</div>
-         <div class="hint">${me.lives === 2 ? 'Two lives remain' : '<span style="color:#c21d1d">Last life — the next fall is death</span>'}</div>` : '';
+         <div class="hint">${me.lives === 2 ? 'Two lives remain' : '<span style="color:#c21d1d">Last life — the next fall is death</span>'}</div>
+         <div class="stamina ${me.exhausted ? 'ex' : ''}"><div style="width:${Math.round((me.stamina ?? 1) * 100)}%"></div></div>` : '';
     this.el('ab').innerHTML = me.role === 'monster' ? abilitiesHtml(s, me) : '';
     this.el('spect').innerHTML = me.state === 'mouse' ? 'YOU ARE A MOUSE · <span class="key">TAB</span> spectate / roam · <span class="key">LMB</span> next'
       : me.state === 'escaped' ? 'YOU ESCAPED · <span class="key">LMB</span> next survivor' : '';

@@ -7,6 +7,8 @@ import { Hud } from './ui/hud.js';
 import { SkillCheck } from './ui/skillcheck.js';
 import { sfx, heartbeat, startAmbience, stopAmbience } from './audio.js';
 import { eventFeed } from './events.js';
+import { MiniMap } from './ui/minimap.js';
+import { PauseMenu } from './ui/pause.js';
 
 export class Match {
   constructor({ stage, input, session, myId, onEnd }) {
@@ -28,6 +30,17 @@ export class Match {
     };
     const me = this.view.me();
     if (me) this.input.yaw = me.rot;
+    this.minimap = new MiniMap(this.map, document.querySelector('.hud'));
+    this.input.onToggleMap = () => this.minimap.toggle();
+    this.pause = new PauseMenu({
+      canPause: !!this.session.game,
+      onResume: () => { this.session.paused = false; this.input.enabled = true; },
+      onLeave: () => this.finish({ ...this.abandonResult(), left: true }),
+    });
+    this.input.onPause = () => {
+      this.pause.toggle();
+      if (this.pause.open) { this.session.paused = true; this.input.keys.clear(); this.input.mouse.r = false; }
+    };
     startAmbience(1);
     sfx.stinger();
     const mon = this.view.monster();
@@ -81,6 +94,17 @@ export class Match {
     }
     this.hudT += dt;
     if (this.hudT > 0.1) { this.hudT = 0; this.hud.update(this.snap, me, this.view, this.input.yaw); }
+    this.mapT = (this.mapT || 0) + dt;
+    if (this.mapT > 0.066) { this.mapT = 0; this.minimap?.draw(this.snap, me, this.input.yaw); }
+    this.hud.fps(dt);
+  }
+
+  // Result shown when the local player leaves mid-match.
+  abandonResult() {
+    const s = this.snap, mon = s.players.find((p) => p.role === 'monster');
+    const surv = s.players.filter((p) => p.role === 'survivor');
+    return { escaped: surv.filter((p) => p.state === 'escaped').length, dead: surv.filter((p) => p.state === 'mouse').length,
+      winner: 'monster', players: surv.map((p) => ({ id: p.id, name: p.name, state: p.state })), monster: { name: mon.name, id: mon.monster } };
   }
 
   finish(result) {
@@ -91,6 +115,8 @@ export class Match {
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
+    this.pause?.el?.remove();
+    this.input.onPause = null; this.input.onToggleMap = null;
     this.session.stop();
     this.input.enabled = false; document.exitPointerLock?.();
     stopAmbience();

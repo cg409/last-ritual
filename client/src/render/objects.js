@@ -1,70 +1,78 @@
-// Interactive world objects: tombs, gallows, crow towers. Lamps & exit gate live in landmarks.js.
+// Interactive objects: sculpted tombs (sarcophagus, stone cross, rune circle, cracks), wooden gallows,
+// crows on the bollards, lamps and the exit gate.
 import * as THREE from 'three';
-import { vlight } from './lights.js';
-import { makeStone, makeWood, makeRune } from './textures.js';
+import { pbr } from './assets.js';
+import { makeRune } from './textures.js';
 import { makeCrow } from './crow.js';
 import { buildLamps, buildDoor } from './landmarks.js';
+import { vlight } from './lights.js';
+import { sh, uvBox } from './buildingParts.js';
 
-export const sh = (m) => { m.castShadow = true; m.receiveShadow = true; return m; };
+function sarcophagus(stone) {
+  const g = new THREE.Group();
+  // stepped plinth
+  const p1 = sh(new THREE.Mesh(uvBox(2.6, 0.25, 1.7, 1), stone)); p1.position.y = 0.12; g.add(p1);
+  const p2 = sh(new THREE.Mesh(uvBox(2.35, 0.15, 1.45, 1), stone)); p2.position.y = 0.32; g.add(p2);
+  // body with bevelled edges (extruded rounded rectangle)
+  const s = new THREE.Shape(), w = 1.0, d = 0.6, r = 0.12;
+  s.moveTo(-w + r, -d); s.lineTo(w - r, -d); s.quadraticCurveTo(w, -d, w, -d + r); s.lineTo(w, d - r); s.quadraticCurveTo(w, d, w - r, d);
+  s.lineTo(-w + r, d); s.quadraticCurveTo(-w, d, -w, d - r); s.lineTo(-w, -d + r); s.quadraticCurveTo(-w, -d, -w + r, -d);
+  const body = sh(new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 0.6, bevelEnabled: true, bevelSize: 0.04, bevelThickness: 0.04, bevelSegments: 2 }), stone));
+  body.rotation.x = -Math.PI / 2; body.position.y = 0.4; g.add(body);
+  // gabled lid
+  const lid = new THREE.Group(); lid.position.y = 1.04; g.add(lid);
+  const ls = new THREE.Shape(); ls.moveTo(-0.7, 0); ls.lineTo(0.7, 0); ls.lineTo(0.55, 0.12); ls.lineTo(0, 0.24); ls.lineTo(-0.55, 0.12); ls.lineTo(-0.7, 0);
+  const lidM = sh(new THREE.Mesh(new THREE.ExtrudeGeometry(ls, { depth: 2.25, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02 }), stone));
+  lidM.rotation.y = Math.PI / 2; lidM.position.x = -1.12; lid.add(lidM);
+  // headstone cross (bevelled)
+  const cs = new THREE.Shape(); const a = 0.07, b = 0.25;
+  cs.moveTo(-a, 0); cs.lineTo(a, 0); cs.lineTo(a, 0.7); cs.lineTo(b, 0.7); cs.lineTo(b, 0.84); cs.lineTo(a, 0.84); cs.lineTo(a, 1.1); cs.lineTo(-a, 1.1); cs.lineTo(-a, 0.84); cs.lineTo(-b, 0.84); cs.lineTo(-b, 0.7); cs.lineTo(-a, 0.7); cs.lineTo(-a, 0);
+  const cross = sh(new THREE.Mesh(new THREE.ExtrudeGeometry(cs, { depth: 0.12, bevelEnabled: true, bevelSize: 0.015, bevelThickness: 0.015 }), stone));
+  cross.position.set(-1.0, 1.05, -0.06); cross.rotation.y = Math.PI / 2; g.add(cross);
+  return { g, lid, cross };
+}
 
 export function buildObjects(scene, map) {
-  const sMat = new THREE.MeshStandardMaterial({ map: makeStone(), roughness: 0.9 });
-  const wMat = new THREE.MeshStandardMaterial({ map: makeWood(), roughness: 1 });
+  const stone = pbr('castle_wall_slates', 1, { color: 0x8a8a88 });
+  const wood = pbr('dark_wooden_planks', 1, { color: 0x8a7a6a });
   const runeTex = makeRune();
   const out = { tombs: [], hooks: [], towers: [] };
 
   for (const t of map.tombs) {
-    const g = new THREE.Group(); g.position.set(t.x, 0, t.z); g.rotation.y = t.rot;
-    const base = sh(new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.35, 1.6), sMat)); base.position.y = 0.17; g.add(base);
-    const body = sh(new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 1.2), sMat)); body.position.y = 0.67; g.add(body);
-    const lid = sh(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.15, 1.35), sMat)); lid.position.y = 1.07; g.add(lid);
-    const cross = sh(new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.1, 0.12), sMat)); cross.position.set(-0.8, 1.6, 0); g.add(cross);
-    const arm = sh(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.12), sMat)); arm.position.set(-0.8, 1.85, 0); g.add(arm);
+    const { g, lid, cross } = sarcophagus(stone);
+    g.position.set(t.x, 0, t.z); g.rotation.y = t.rot;
     const runeMat = new THREE.MeshBasicMaterial({ map: runeTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xb070ff });
-    const rune = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), runeMat); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.03; g.add(rune);
+    const rune = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), runeMat); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.04; g.add(rune);
     const light = vlight(0x9a50ff, 0, 9, 1.5); light.position.y = 1.6; g.add(light);
-    const shards = []; // visible fragments as the tomb gets cracked by wrong clicks
+    const shards = [];
     for (let i = 0; i < 6; i++) {
-      const s = sh(new THREE.Mesh(new THREE.DodecahedronGeometry(0.12 + Math.random() * 0.1, 0), sMat));
-      s.position.set((Math.random() - 0.5) * 2.6, 0.1, (Math.random() - 0.5) * 2); s.visible = false; g.add(s); shards.push(s);
+      const sd = sh(new THREE.Mesh(new THREE.DodecahedronGeometry(0.1 + Math.random() * 0.1, 0), stone));
+      sd.position.set((Math.random() - 0.5) * 2.8, 0.08, (Math.random() - 0.5) * 2.2); sd.visible = false; g.add(sd); shards.push(sd);
     }
     scene.add(g);
-    out.tombs.push({ g, lid, cross, arm, rune, runeMat, light, shards });
+    out.tombs.push({ g, lid, cross, arm: cross, rune, runeMat, light, shards });
   }
 
-  for (const h of map.hooks) { // wooden gallows with a noose
+  for (const h of map.hooks) { // rough-hewn gallows with a noose
     const g = new THREE.Group(); g.position.set(h.x, 0, h.z); g.rotation.y = h.rot;
-    const post = sh(new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.4, 0.22), wMat)); post.position.y = 1.7; g.add(post);
-    const beam = sh(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.18, 0.18), wMat)); beam.position.set(0.6, 3.3, 0); g.add(beam);
-    const brace = sh(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), wMat)); brace.position.set(0.25, 2.95, 0); brace.rotation.z = 0.8; g.add(brace);
-    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x8a7550 });
-    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.0), ropeMat); rope.position.set(1.15, 2.75, 0); g.add(rope);
-    const noose = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.02, 6, 12), ropeMat); noose.position.set(1.15, 2.2, 0); g.add(noose);
+    const post = sh(new THREE.Mesh(uvBox(0.24, 3.5, 0.24, 1), wood)); post.position.y = 1.75; post.rotation.z = 0.02; g.add(post);
+    const beam = sh(new THREE.Mesh(uvBox(1.5, 0.2, 0.2, 1), wood)); beam.position.set(0.62, 3.35, 0); g.add(beam);
+    const brace = sh(new THREE.Mesh(uvBox(0.14, 1.0, 0.14, 1), wood)); brace.position.set(0.28, 2.95, 0); brace.rotation.z = 0.8; g.add(brace);
+    const base = sh(new THREE.Mesh(uvBox(0.9, 0.18, 0.9, 1), wood)); base.position.y = 0.09; g.add(base);
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x6a5838, roughness: 1 });
+    const rope = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(1.15, 3.3, 0), new THREE.Vector3(1.16, 2.8, 0.02), new THREE.Vector3(1.15, 2.35, 0)]), 8, 0.018, 6), ropeMat); g.add(rope);
+    const noose = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 16), ropeMat); noose.position.set(1.15, 2.22, 0); g.add(noose);
     scene.add(g);
     out.hooks.push({ g });
   }
 
-  for (const t of map.towers) { // crumbling bell tower, crows on the parapet
+  for (const t of map.towers) { // one realistic crow per bollard
     const g = new THREE.Group(); g.position.set(t.x, 0, t.z);
-    const shaft = sh(new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.7, t.h, 8), sMat)); shaft.position.y = t.h / 2; g.add(shaft);
-    const top = sh(new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.5, 0.5, 8), sMat)); top.position.y = t.h; g.add(top);
-    const roof = sh(new THREE.Mesh(new THREE.ConeGeometry(1.8, 2.4, 8), new THREE.MeshStandardMaterial({ color: 0x1a1414, roughness: 0.8 }))); roof.position.y = t.h + 2.2; g.add(roof);
-    for (let i = 0; i < 4; i++) {
-      const p = sh(new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.6, 0.2), sMat)); const a = i * Math.PI / 2 + Math.PI / 8;
-      p.position.set(Math.cos(a) * 1.6, t.h + 1.0, Math.sin(a) * 1.6); g.add(p);
-    }
-    const crows = t.crows.map((c) => {
-      const crow = makeCrow(); crow.position.set(Math.cos(c.a) * 1.75, t.h + 0.25, Math.sin(c.a) * 1.75); crow.rotation.y = -c.a + Math.PI / 2;
-      g.add(crow); return crow;
-    });
-    for (let i = 0; i < 3; i++) {
-      const crow = makeCrow(); const a = Math.random() * 6.28; crow.position.set(Math.cos(a) * 3, 0, Math.sin(a) * 3); crow.rotation.y = Math.random() * 6;
-      g.add(crow); crows.push(crow);
-    }
+    const crow = makeCrow(); crow.position.set(0, 1.6, 0); crow.rotation.y = t.crows[0].a; g.add(crow);
     scene.add(g);
-    out.towers.push({ g, crows, h: t.h, id: t.id });
+    out.towers.push({ g, crows: [crow], h: t.h, id: t.id });
   }
   out.lamps = buildLamps(scene, map);
-  out.door = buildDoor(scene, map.exit, sMat);
+  out.door = buildDoor(scene, map.exit, pbr('mossy_stone_wall', 1));
   return out;
 }

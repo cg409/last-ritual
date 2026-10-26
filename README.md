@@ -80,6 +80,12 @@ Separate multiple origins with commas. Then save, which redeploys the server.
 **Rules:** enchanting 1 tomb seals the monster's special. 2 tombs make it slower with shorter reach. 3 tombs spawn 3 keys; bring them to the gate.
 You have 2 lives. On the first, a downed survivor is hanged and can be rescued. On the second, the monster kills instantly and you become a spectating mouse.
 
+## Assets
+Realistic models and PBR textures (dead trees, mossy rocks, shrubs, ferns, cars, barrels, iron gate, street lamps, stone/plank/slate textures) are **CC0 from [Poly Haven](https://polyhaven.com)**. They live in `client/public/assets` (~86 MB, committed so Netlify serves them). To re-download or change the list: `node tools/fetch-assets.mjs`.
+
+## Settings
+The main menu and in-game ESC menu have Graphics (Low / Medium / High presets), Video (brightness, FOV, vignette, optional film grain, FPS counter), Audio (master / ambience / effects), Controls (sensitivity, invert Y, rebind every key) and Interface (mini-map on/off and size). **M** toggles the mini-map.
+
 ## Credits
 The character model is `Soldier.glb` from the three.js examples (MIT). It's re-tinted in a shader per skin and paired with procedural hats and masks.
 Everything else (textures, props, audio) is generated procedurally in code.

@@ -4,7 +4,7 @@ import { collide, inGrass } from './nav.js';
 import { dist } from './rng.js';
 import { doInteract, resolveSkill } from './interact.js';
 
-const DOOR_R = 3;
+const DOOR_R = 3.6;
 
 export function updateSurvivor(g, p, dt) {
   const inp = p.input;
@@ -22,7 +22,14 @@ export function updateSurvivor(g, p, dt) {
   burnHeld(g, p, dt);
   const stuck = p.stuckUntil > g.time;
   p.crouch = !!inp.crouch; p.crawl = !!inp.crawl;
-  let speed = p.crawl ? SURVIVOR.crawl : p.crouch ? SURVIVOR.crouch : inp.run ? SURVIVOR.run : SURVIVOR.walk;
+  // Stamina: sprinting (same top speed as the monster) lasts ~7s, then you must recover.
+  if (p.stamina == null) p.stamina = 1;
+  const wantsRun = !!inp.run && Math.hypot(inp.mx || 0, inp.mz || 0) > 0.1 && !p.crouch && !p.crawl;
+  if (p.exhausted && p.stamina > 0.35) p.exhausted = false;
+  const canRun = wantsRun && !p.exhausted;
+  p.stamina = Math.max(0, Math.min(1, p.stamina + (canRun ? -dt / 7 : dt / 10)));
+  if (p.stamina <= 0) p.exhausted = true;
+  let speed = p.crawl ? SURVIVOR.crawl : p.crouch ? SURVIVOR.crouch : canRun ? SURVIVOR.run : SURVIVOR.walk;
   if (p.boostUntil > g.time) speed = Math.max(speed, SURVIVOR.run * 1.25);
   if (p.slowUntil > g.time) speed *= 0.6;
   if (stuck) speed = 0;
@@ -31,7 +38,7 @@ export function updateSurvivor(g, p, dt) {
   if (inp.interact && !wantsMove && !stuck) doInteract(g, p, dt);
   else if (!stuck) { p.act = null; p.actT = 0; p.skill = null; }
   if (p.act) speed = 0;
-  p.running = !!inp.run && wantsMove && !p.crouch && !p.crawl && speed > SURVIVOR.walk;
+  p.running = canRun && speed > SURVIVOR.walk;
   moveBody(g, p, inp, speed, dt, 0.4);
   p.hidden = (p.crouch || p.crawl) && inGrass(g.map, p.x, p.z);
 

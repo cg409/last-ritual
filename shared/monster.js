@@ -8,7 +8,7 @@ export function monsterStats(g) {
   const n = g.enchantedCount();
   const weak = g.phase >= 2 || n >= 2;
   return {
-    speed: MONSTER_BASE.speed * (weak ? 0.86 : 1),
+    speed: MONSTER_BASE.speed * (weak ? 0.92 : 1),
     range: MONSTER_BASE.attackRange * (weak ? 0.7 : 1),
     specialSealed: g.phase >= 1,
   };
