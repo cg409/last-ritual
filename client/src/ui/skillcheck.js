@@ -1,6 +1,7 @@
 // DbD-style skill check ring. The server sends {start, speed, zoneStart, zoneLen, great};
 // the needle position is computed from the shared game clock. SPACE evaluates timing locally.
 import { sfx } from '../audio.js';
+import { isTouch } from '../touch.js';
 
 export class SkillCheck {
   constructor() { this.cur = null; this.answered = new Set(); this.flash = 0; this.flashColor = '#fff'; }
@@ -34,7 +35,7 @@ export class SkillCheck {
         ctx.fillStyle = 'rgba(230,220,200,.9)'; ctx.font = '600 18px Cinzel, serif'; ctx.fillText('GET READY', c, c + 24);
       } else {
         ctx.fillStyle = 'rgba(230,220,200,.9)'; ctx.font = '600 22px Cinzel, serif';
-        ctx.fillText('SPACE', c, c);
+        ctx.fillText(isTouch ? 'TAP' : 'SPACE', c, c);
       }
     } else this.cur = null;
     if (this.flash > 0) {

@@ -1,8 +1,10 @@
-﻿{
+{
   "name": "The Last Ritual",
   "short_name": "Last Ritual",
   "description": "A multiplayer horror survival game: five souls, three tombs, one of you is already damned.",
+  "id": "/",
   "start_url": "/",
+  "categories": ["games"],
   "scope": "/",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],

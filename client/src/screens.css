@@ -347,3 +347,4 @@ textarea.field { background: #050303; color: #e6dccb; border: 1px solid #4a2c2c;
 
 /* panels sit above the dark left-hand fade of the menu backdrop (it was dimming the text on their left side) */
 .menuv2 > .panel { position: relative; z-index: 3; }
+.mm-rep { color: #ffffff; opacity: .85; } .mm-rep:hover { color: #fff; opacity: 1; }

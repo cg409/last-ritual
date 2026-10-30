@@ -1,20 +1,21 @@
 // Contextual interaction prompt text + progress for the local player.
 import { dist } from '@shared/rng.js';
 import { SURVIVOR, CHESTS } from '@shared/constants.js';
+import { isTouch } from '../touch.js';
 
 const K = (k) => `<span class="key">${k}</span>`;
 
 export function prompts(s, me, view) {
   const r = { text: '', prog: null };
   if (me.role === 'survivor') {
-    if (me.state === 'hooked') { r.text = `Hanging… ${Math.max(0, 60 - me.hookT).toFixed(0)}s · ${K('SPACE')} struggle (once, 4% chance)`; r.prog = 1 - me.hookT / 60; return r; }
-    if (me.state === 'carried') { r.text = `Wiggle free! Tap ${K('A')} ${K('D')}`; r.prog = me.wiggle; return r; }
+    if (me.state === 'hooked') { r.text = `Hanging… ${Math.max(0, 60 - me.hookT).toFixed(0)}s · ${isTouch ? 'tap the screen to struggle' : K('SPACE') + ' struggle'} (once, 4% chance)`; r.prog = 1 - me.hookT / 60; return r; }
+    if (me.state === 'carried') { r.text = isTouch ? 'Wiggle free! Tap the screen again and again' : `Wiggle free! Tap ${K('A')} ${K('D')}`; r.prog = me.wiggle; return r; }
     if (me.state === 'downed') { r.text = 'You are down. Crawl to an ally… they can revive you.'; return r; }
     if (me.state !== 'alive') return r;
     const near = (x, z, d) => dist(me.x, me.z, x, z) < d;
     if (me.hideIn != null) { r.text = `Hiding in the ${view.map.hides[me.hideIn]?.kind === 'potty' ? 'porta-potty' : 'cupboard'} · hold your breath… · ${K('E')} climb out`; return r; }
     if (me.fallen) { r.text = 'You tripped! Getting up…'; r.prog = me.fallK; return r; }
-    if (me.trapped) { r.text = `Caught in a foothold trap! Press ${K('SPACE')} on the skill checks to pry it open (${me.trapped.passed}/2)`; return r; }
+    if (me.trapped) { r.text = `Caught in a foothold trap! ${isTouch ? 'Tap the screen' : 'Press ' + K('SPACE')} on the skill checks to pry it open (${me.trapped.passed}/2)`; return r; }
     if (me.stuck) { r.text = 'Caught!'; return r; }
     if (me.act) {
       const chest = me.act === 'chest' && view.map.chests.find((c) => near(c.x, c.z, 1.6));

@@ -65,7 +65,7 @@ export function objective(bot, out) {
     const slot = (parseInt(String(p.id).replace(/\D/g, ''), 10) || 0) % 4;
     const ox = [1.7, -1.7, 0, 0][slot], oz = [0, 0, 1.5, -1.5][slot];
     if (bot.goTo(pick.x + ox, pick.z + oz, out, 0.6, 0)) { out.interact = true; bot.face(pick.x, pick.z, out); }
-    else if (m.monster === 'wanderer' && g.state.towers?.some((t) => dist(t.x, t.z, p.x, p.z) < 16)) out.crouch = true; // sneak past crows
+    else if (m.monster === 'wanderer' && g.state.towers?.some((t) => dist(t.x, t.z, p.x, p.z) < 8)) out.crouch = true; // sneak past crows
     return out;
   }
   bot.task = null;

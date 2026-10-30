@@ -2,10 +2,12 @@
 // Recorded clips (sounds.js) cover the big sounds; these fill the gaps. All kept dark and low.
 import { tone, noise } from './audio.js';
 
+let lastHover = 0;
 export const sfx = {
   // UI: a muffled knock on old wood (no bright blips); hovering is silent
   click: () => { noise(0.09, 260, 0.35, 0, 'lowpass', 1); tone(70, 0.12, 'sine', 0.18, 0, -20); },
-  hover: () => {},
+  // moving the cursor over a button: the faintest dry tick (barely there), never more than ~12 per second
+  hover: () => { const t = performance.now(); if (t - lastHover < 80) return; lastHover = t; noise(0.018, 3200, 0.035, 0, 'bandpass', 2.5); tone(1250, 0.018, 'sine', 0.012, 0, -250); },
   // a door: a creaking hinge (hide / unhide), slammed open (search)
   creak: (pan = 0, vol = 0.5) => { tone(190, 0.5, 'sawtooth', 0.05 * vol, pan, 70); noise(0.45, 900, 0.18 * vol, pan, 'bandpass', 9); },
   doorBang: (pan = 0, vol = 0.7) => { noise(0.25, 260, 0.6 * vol, pan, 'lowpass'); noise(0.1, 2200, 0.25 * vol, pan, 'bandpass', 3); },

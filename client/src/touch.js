@@ -87,12 +87,14 @@ export class TouchControls {
     el.innerHTML = `
       <div class="tc-look"></div>
       <div class="tc-zone"><div class="tc-base"><div class="tc-knob"></div></div></div>
+      <div class="tc-taphint" id="tc-taphint"></div>
       <div class="tc-top">
         <button data-t="map">MAP</button><button data-t="chat">CHAT</button><button data-t="pause">❚❚</button>
       </div>
       <div class="tc-btns">${BUTTONS.map((b) => `<button class="tc-b" data-id="${b.id}" hidden><i>${b.t}</i><small>${b.l}</small></button>`).join('')}</div>
 `;
     document.body.appendChild(el);
+    this.hint = el.querySelector('#tc-taphint');
     this.base = el.querySelector('.tc-base'); this.knob = el.querySelector('.tc-knob');
     this.stickId = null; this.lookId = null; this.stickC = null; this.lookLast = null;
     this.bindStick(el.querySelector('.tc-zone')); this.bindLook(el.querySelector('.tc-look'));
@@ -102,7 +104,13 @@ export class TouchControls {
     top('map').addEventListener('pointerdown', (e) => press(e, () => this.input.virtualKey('map')));
     top('chat').addEventListener('pointerdown', (e) => press(e, () => this.input.virtualKey('chat')));
     top('pause').addEventListener('pointerdown', (e) => press(e, () => this.input.onPause?.()));
-    this.rk = 'survivor';
+    this.rk = 'survivor'; this.tapMode = null;
+    // Skill checks, struggling on the hook and wiggling out of the monster's arms: tap ANYWHERE on the screen (replaces SPACE / A / D)
+    el.addEventListener('pointerdown', (e) => {
+      if (!this.tapMode || e.target.closest('.tc-b, .tc-top')) return;
+      if (this.tapMode === 'wiggle') this.input.actions.push({ t: 'wiggle' }); else this.input.virtualKey('skill');
+      this.hint.classList.remove('hit'); void this.hint.offsetWidth; this.hint.classList.add('hit');
+    });
     this.onResize = () => this.layout();
     window.addEventListener('resize', this.onResize);
     this.offSet = onSettings(() => this.layout());
@@ -191,6 +199,8 @@ export class TouchControls {
   update(me, dt) {
     this.tick += dt; if (this.tick < 0.12) return; this.tick = 0;
     const role = me?.role || '', state = me?.state || '';
+    const tap = me?.skill ? 'skill' : state === 'carried' ? 'wiggle' : state === 'hooked' ? 'struggle' : me?.trapped ? 'skill' : null;
+    if (tap !== this.tapMode) { this.tapMode = tap; this.el.classList.toggle('tapmode', !!tap); this.hint.textContent = { skill: 'TAP ANYWHERE', wiggle: 'TAP, TAP, TAP TO BREAK FREE', struggle: 'TAP TO STRUGGLE' }[tap] || ''; }
     const dead = state === 'mouse' || state === 'escaped';
     const inv = me?.inv || {};
     const sig = [role, state, !!inv.string, !!inv.eye].join();

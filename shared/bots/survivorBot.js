@@ -73,7 +73,23 @@ export class SurvivorBot extends BotBase {
     return seen && inSight(g, p, m) ? { x: m.x, z: m.z, d, sure: true } : null;
   }
 
+  // Final say on the stance. Crouching only makes sense when the monster has NOT seen you (sneaking past it, frozen in
+  // grass) - never while it is looking at you, never while running, and never because of a disguised Mimic (it looks
+  // like a friend). Far from any danger an NPC just walks normally.
   think(dt) {
+    const out = this.plan(dt), g = this.g, p = this.p, m = g.monster;
+    if (out && p.state === 'alive') {
+      if (out.run) out.crouch = false;
+      if (out.crouch && !p.act) {
+        const md = dist(p.x, p.z, m.x, m.z);
+        if (inSight(g, m, p) || (m.monster === 'mimic' && m.disguise)) out.crouch = false;
+        else if (md > 24 && this.mode !== 'sneak' && !inGrass(g.map, p.x, p.z)) out.crouch = false;
+      }
+    }
+    return out;
+  }
+
+  plan(dt) {
     const g = this.g, p = this.p, out = { mx: 0, mz: 0 };
     if (p.state === 'mouse') return this.mouse(out);
     if (p.state === 'escaped') return out;
@@ -122,7 +138,7 @@ export class SurvivorBot extends BotBase {
     const wantLight = g.isBlackout() ? false : !heartbeat && (p.unlimited || p.light > 20) && (p.level | 0) === 0 && g.random() < 0.0005 ? !p.lightOn : (p.lightOn && heartbeat ? false : p.lightOn);
     if (wantLight !== !!p.lightOn) this.act({ t: 'light' });
     const r = objective(this, out);
-    if (heartbeat && md < 20 && !out.run) out.crouch = out.crouch || this.bravery < 0.8;
+    if (heartbeat && md < 10 && !out.run && !inSight(g, m, p)) out.crouch = out.crouch || this.bravery < 0.8;
     // noise discipline: sprinting inside the monster's hearing range tells it exactly where you are
     if (r.run && !threat && md < noiseR && md > 2) { r.run = false; if (md < 12) r.crouch = r.crouch || this.bravery < 0.9; }
     return r;
@@ -195,7 +211,7 @@ export class SurvivorBot extends BotBase {
       const s = Math.sin(this.zig) > 0 ? 1 : -1, perp = Math.atan2(out.mx, out.mz) + s * 1.2;
       out.mx = Math.sin(perp); out.mz = Math.cos(perp);
     }
-    if (m.monster === 'ravager' && d > 18) { out.run = false; out.crouch = true; } // no footprints, no noise
+    if (m.monster === 'ravager' && d > 18 && !watched) { out.run = false; out.crouch = true; } // no footprints, no noise
     this.hurdle(out);
     // Slam a pallet when the monster is right behind.
     if (d < 5 && palletNear(g, p.x, p.z, 'up') && g.random() < 0.5 + this.skill * 0.4) out.interact = true;

@@ -26,6 +26,7 @@ import { leaderboardScreen } from './ui/leaderboard.js';
 import { autoGraphics } from './ui/gfxChooser.js';
 import { installScreen } from './ui/install.js';
 import { reportScreen } from './ui/report.js';
+import { sfx } from './sfx.js';
 import { isTouch as touchDevice, goFullscreen } from './touch.js';
 import { playClip, readyCount } from './sounds.js';
 import { getCtx } from './audio.js';
@@ -199,6 +200,14 @@ function setupDevice() {
     document.body.appendChild(rot);
     document.addEventListener('click', goFullscreen, true);
     document.addEventListener('touchend', goFullscreen, { capture: true, passive: true });
+  }
+  if (!touchDevice) { // a faint tick when the cursor moves onto any button / card / tab / list row
+    let last = null;
+    document.addEventListener('mouseover', (e) => {
+      const t = e.target.closest?.('button, .btn, .card, .tab, .item, .mm-item, .mm-sbtn, .lb-ghost, .fr-s, .keybtn, .ip-row, .seat.me, .pick, .skin, .opt');
+      if (t === last) return; last = t;
+      if (t && !t.disabled) sfx.hover();
+    }, true);
   }
   window.addEventListener('tlr-reward', (e) => {
     const t = document.createElement('div'); t.className = 'reward-toast';

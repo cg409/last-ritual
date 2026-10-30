@@ -4,6 +4,7 @@ import { settings, update, setTouch, resetSettings, PRESETS, ACTIONS, keyName } 
 import { esc } from './dom.js';
 import { sfx } from '../audio.js';
 import { openLayoutEditor, isTouch } from '../touch.js';
+import { installNow, isInstalled } from './install.js';
 
 let tab = 'graphics';
 
@@ -32,7 +33,7 @@ export function settingsPanel(container, onBack) {
     body = "<div class='set-row' style='flex-wrap:wrap;gap:8px'><span>Device (controls)</span><span class='seg'>" + [['auto', 'Auto'], ['pc', 'PC / laptop'], ['phone', 'Phone / tablet']].map(([id, l]) => "<button class='btn small " + (dev === id ? 'primary' : '') + "' data-device='" + id + "'>" + l + "</button>").join('') + "</span></div><div class='lore' style='font-size:12px;margin:-2px 0 8px'>Auto picks keyboard + mouse on computers and on-screen touch controls on phones and tablets. Changing this reloads the game.</div>" + "<div class='set-row' style='flex-wrap:wrap;gap:8px'><span>Phone buttons</span><span class='seg'><button class='btn small' data-touch='edit'>Edit button layout</button><button class='btn small' data-touch='reset'>Reset layout</button></span></div>" + slider('touch.scale', 'Phone button size', s.touch.scale, 0.7, 1.5, 0.05, (v) => Math.round(v * 100) + '%') + slider('touch.opacity', 'Phone button opacity', s.touch.opacity, 0.3, 1, 0.05, (v) => Math.round(v * 100) + '%') + slider('controls.sensitivity', 'Mouse sensitivity', s.controls.sensitivity, 0.2, 3, 0.05, (v) => (+v).toFixed(2)) + toggle('controls.invertY', 'Invert mouse Y', s.controls.invertY) +
       `<div class="keys">${ACTIONS.map(([id, label]) => `<div class="set-row"><span>${esc(label)}</span><button class="keybtn" data-bind="${id}">${esc(keyName(s.controls.keys[id]))}</button></div>`).join('')}</div>`;
   } else {
-    body = slider('ui.fontScale', 'Text / interface size', s.ui.fontScale, 0.8, 1.6, 0.05, (v) => Math.round(v * 100) + '%') + toggle('hud.minimap', 'Show mini-map', s.hud.minimap) + slider('hud.minimapSize', 'Mini-map size', s.hud.minimapSize, 140, 320, 10, (v) => v + 'px');
+    body = (isInstalled() ? '' : "<div class='set-row' style='flex-wrap:wrap;gap:8px'><span>Play as an app (full screen, faster)</span><button class='btn small primary' data-install='1'>Install the app</button></div><div class='lore' id='inst-note' style='font-size:12px;margin:-2px 0 8px'></div>") + slider('ui.fontScale', 'Text / interface size', s.ui.fontScale, 0.8, 1.6, 0.05, (v) => Math.round(v * 100) + '%') + toggle('hud.minimap', 'Show mini-map', s.hud.minimap) + slider('hud.minimapSize', 'Mini-map size', s.hud.minimapSize, 140, 320, 10, (v) => v + 'px');
   }
   container.innerHTML = `
     <div class="panel settings" style="width:min(760px,94vw)">
@@ -73,6 +74,7 @@ export function settingsPanel(container, onBack) {
     };
     window.addEventListener('keydown', h, true);
   });
+  container.querySelectorAll('[data-install]').forEach((b) => b.onclick = async () => { sfx.click(); const n = container.querySelector('#inst-note'); if (n) n.textContent = await installNow(); });
   container.querySelectorAll('[data-touch]').forEach((b) => b.onclick = () => {
     sfx.click();
     if (b.dataset.touch === 'edit') openLayoutEditor(); else setTouch({ pos: {}, size: {} });

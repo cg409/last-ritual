@@ -6,7 +6,8 @@ import { graphics } from '../settings.js';
 import { isTouch } from '../touch.js';
 
 let deferred = null;
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; });
+let onReady = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; onReady?.(); });
 window.addEventListener('appinstalled', () => localStorage.setItem('tlr-installed', '1'));
 
 const standalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
@@ -37,7 +38,7 @@ export async function installScreen() {
   if (standalone() || localStorage.getItem('tlr-installed') === '1' || Date.now() - dismissed < 14 * 86400000) return;
   if (new URLSearchParams(location.search).has('debug') || !('serviceWorker' in navigator)) return;
   // give the browser a moment to announce that it can install the app
-  if (!isIos() && !deferred) await new Promise((r) => setTimeout(r, 900));
+  if (!isIos() && !deferred) await new Promise((r) => { onReady = r; setTimeout(r, 1500); }); // the browser announces 'installable' a moment after loading
   if (!isIos() && !deferred && !isTouch) return; // desktop browsers that can't install: just play
   const info = await sizeInfo();
   const size = info ? mb(info.bytes) : 'about 20 MB';
@@ -71,7 +72,10 @@ export async function installScreen() {
         if (choice.outcome !== 'accepted') { go.disabled = false; msg.textContent = 'Not installed. You can skip and play in the browser.'; return; }
         localStorage.setItem('tlr-installed', '1');
       } else {
-        msg.textContent = 'Open your browser menu and choose "Install app" or "Add to Home screen".';
+        // the browser has not offered a one-tap install: wait a moment, then show the manual way
+        await new Promise((r) => { onReady = r; setTimeout(r, 2500); });
+        if (deferred) { go.disabled = false; go.click(); return; }
+        msg.textContent = 'Open your browser menu (the three dots) and choose "Install app" or "Add to Home screen".';
       }
       if (info) {
         bar.hidden = false; msg.textContent = 'Downloading the game files...';
@@ -81,4 +85,16 @@ export async function installScreen() {
       setTimeout(finish, 1400);
     });
   });
+}
+
+// Used by Settings > Interface ("Install the app"): the browser's own install box, or the manual steps.
+export const isInstalled = () => standalone() || localStorage.getItem('tlr-installed') === '1';
+export async function installNow() {
+  if (deferred) {
+    deferred.prompt();
+    const c = await deferred.userChoice.catch(() => ({ outcome: 'dismissed' }));
+    deferred = null; if (c.outcome === 'accepted') localStorage.setItem('tlr-installed', '1');
+    return c.outcome === 'accepted' ? 'Installed! Launch it from your home screen.' : 'Not installed.';
+  }
+  return isIos() ? 'Tap the Share button, then "Add to Home Screen".' : 'Open your browser menu (the three dots) and choose "Install app" or "Add to Home screen".';
 }
