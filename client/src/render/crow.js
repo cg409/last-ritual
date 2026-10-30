@@ -1,7 +1,7 @@
 // Realistic crow: sculpted perched body (lathe profile + layered feather cards + curved beak, claws),
 // and an animated flying crow (morph-target bird model, re-skinned glossy black) that takes off on screech.
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { makeGltfLoader, loadRetry } from './assets.js';
 
 const feather = new THREE.MeshPhysicalMaterial({ color: 0x0c0c10, roughness: 0.38, metalness: 0.1, sheen: 1, sheenColor: new THREE.Color(0x2a3a6a), sheenRoughness: 0.4, side: THREE.DoubleSide });
 const beakMat = new THREE.MeshStandardMaterial({ color: 0x141210, roughness: 0.35 });
@@ -10,7 +10,7 @@ let flyer = null;
 
 export async function loadCrowAssets() {
   try {
-    const g = await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}assets/models/crow/Parrot.glb`);
+    const g = await loadRetry(makeGltfLoader(), `${import.meta.env.BASE_URL}assets/models/crow/Parrot.glb`);
     const mesh = g.scene.getObjectByProperty('isMesh', true);
     mesh.material = new THREE.MeshStandardMaterial({ color: 0x0a0a0d, roughness: 0.45, metalness: 0.1, vertexColors: false });
     flyer = { mesh, clip: g.animations[0] };

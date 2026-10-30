@@ -1,7 +1,7 @@
 // Static environment: PBR forest-floor terrain with mud patches, perimeter wall, buildings, dead forest,
 // real scanned props (rocks, shrubs, ferns, cars, barrels, statues...), tall grass, ruins, bollards.
 import * as THREE from 'three';
-import { pbr, instanceModel } from './assets.js';
+import { pbr, instanceModel, liteScan } from './assets.js';
 import { buildBuildings } from './buildings.js';
 import { buildTrees } from './trees.js';
 import { buildGrass } from './grass.js';
@@ -51,12 +51,13 @@ export function buildWorld(scene, map) {
   const prof = [[0.42, 0], [0.42, 0.12], [0.34, 0.18], [0.3, 1.25], [0.36, 1.32], [0.36, 1.45], [0.28, 1.52], [0, 1.6]].map(([r, y]) => new THREE.Vector2(r, y));
   const bGeo = new THREE.LatheGeometry(prof, 14);
   for (const t of map.towers) { const b = sh(new THREE.Mesh(bGeo, bollardMat)); b.position.set(t.x, terrainY(t.x, t.z) - 0.05, t.z); group.add(b); }
+  liteScan(group);
   return group;
 }
 
 function buildTerrain(group, map) {
   const size = map.size + 60;
-  const geo = new THREE.PlaneGeometry(size, size, 160, 160);
+  const geo = new THREE.PlaneGeometry(size, size, graphics().lite ? 80 : 160, graphics().lite ? 80 : 160);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i);

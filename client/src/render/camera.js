@@ -1,6 +1,34 @@
 // Third-person over-the-shoulder camera for survivors, first-person for the monster (like DbD).
 import * as THREE from 'three';
-import { lineOfSight } from '@shared/nav.js';
+import { onLevel } from '@shared/nav.js';
+import { buildingAt } from '@shared/levels.js';
+import { STORY_HEIGHT } from '@shared/buildings.js';
+
+// Exact "is the camera path blocked" test. (The shared lineOfSight samples every 0.6 m, which can step right
+// over a 0.4 m wall; this is a true segment-vs-box test, with a margin so the near plane never pokes through.)
+function camBlocked(map, ax, az, bx, bz, level, pad) {
+  const dx = bx - ax, dz = bz - az, minX = Math.min(ax, bx), maxX = Math.max(ax, bx), minZ = Math.min(az, bz), maxZ = Math.max(az, bz);
+  for (const r of map.rects) {
+    if (r.low || (r.h != null && r.h < 1.3) || !onLevel(r, level)) continue;       // low things (fences, furniture) don't block the view
+    const inside = Math.abs(ax - r.x) < r.hw + pad && Math.abs(az - r.z) < r.hd + pad; // already hugging it: only the real box counts
+    const p = inside ? 0.02 : pad, hw = r.hw + p, hd = r.hd + p;
+    if (maxX < r.x - hw || minX > r.x + hw || maxZ < r.z - hd || minZ > r.z + hd) continue;
+    let t0 = 0, t1 = 1, ok = true;
+    for (const [o, d, lo, hi] of [[ax, dx, r.x - hw, r.x + hw], [az, dz, r.z - hd, r.z + hd]]) {
+      if (Math.abs(d) < 1e-9) { if (o < lo || o > hi) { ok = false; break; } continue; }
+      let a = (lo - o) / d, b = (hi - o) / d; if (a > b) [a, b] = [b, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, b); if (t0 > t1) { ok = false; break; }
+    }
+    if (ok) return true;
+  }
+  if (level) return false;
+  for (const c of map.circles) { // trees / rocks / pillars: distance from the circle centre to the segment
+    if (c.type !== 'tree' && c.type !== 'rock' && c.type !== 'pillar') continue;
+    const L = dx * dx + dz * dz, t = L ? Math.max(0, Math.min(1, ((c.x - ax) * dx + (c.z - az) * dz) / L)) : 0;
+    if (Math.hypot(ax + dx * t - c.x, az + dz * t - c.z) < c.r * 0.9 + 0.1) return true;
+  }
+  return false;
+}
 
 export class CameraRig {
   constructor(camera) {
@@ -61,18 +89,35 @@ export class CameraRig {
       this.inK = (this.inK || 0) + ((inside ? 1 : 0) - (this.inK || 0)) * Math.min(1, dt * 3);
       let want = mouse ? 1.9 : 3.6 - this.inK * 1.5;
       const side = mouse ? 0 : -0.55 + this.inK * 0.1;
-      const back = (d) => head.clone().addScaledVector(fwd, -d * Math.cos(pitch)).addScaledVector(right, side);
-      for (let d = want; d > 0.8; d -= 0.4) { const b = back(d); if (lineOfSight(map, head.x, head.z, b.x, b.z)) { want = d; break; } want = d - 0.4; }
+      const backS = (d, sk) => head.clone().addScaledVector(fwd, -d * Math.cos(pitch)).addScaledVector(right, side * sk);
+      const lv = p.level | 0, room = mouse ? 0.1 : 0.28;
+      // Walk the camera in until its path is clear; if a wall is beside the player, slide it back behind
+      // the shoulder instead (sk shrinks the sideways offset). The check reaches a little further than the
+      // camera, so there is always a gap between the lens and the wall.
+      let sk = 1, found = false;
+      for (let d = want; d > 0.12 && !found; d -= 0.3) {
+        for (const k of [1, 0.45, 0]) {
+          const bb = backS(d + Math.min(room, d * 0.6), k);
+          if (!camBlocked(map, head.x, head.z, bb.x, bb.z, lv, 0.2)) { want = d; sk = k; found = true; break; }
+        }
+        if (!found) want = d - 0.3;
+      }
+      if (!found) sk = 0;
+      this.sideK = this.sideK == null ? sk : this.sideK + (sk - this.sideK) * Math.min(1, dt * (sk < this.sideK ? 14 : 3));
+      const back = (d) => backS(d, this.sideK);
       // Pull in fast when blocked, ease back out slowly (no in/out jitter when running past trees).
-      const wantD = Math.max(0.8, want);
+      const wantD = Math.max(0.12, want);
       this.dist += (wantD - this.dist) * Math.min(1, dt * (wantD < this.dist ? 10 : 2.5));
       const camPos = back(this.dist); camPos.y = head.y - Math.sin(pitch) * this.dist + (mouse ? 0.2 : 0.25);
       camPos.y = Math.max(gy + (mouse ? 0.25 : 0.3), camPos.y);
+      // Never above the ceiling / floor slab of the room you are in (looking down pushes the camera up).
+      const roof = buildingAt(map, camPos.x, camPos.z, 0.35) || buildingAt(map, head.x, head.z, 0.1);
+      if (roof && lv < roof.floors) camPos.y = Math.min(camPos.y, (lv + 1) * STORY_HEIGHT - 0.28 - (lv ? 0.0 : 0.0));
       // The target is already smoothly interpolated, so follow it rigidly (a lagging lerp on a
       // moving target made the whole view wobble back and forth while running).
       this.pos.copy(camPos);
       this.camera.position.copy(this.pos);
-      this.look.copy(head).addScaledVector(right, side).addScaledVector(fwd, 2);
+      this.look.copy(head).addScaledVector(right, side * this.sideK).addScaledVector(fwd, 2);
       this.look.y = head.y + Math.sin(pitch) * 2;
     }
     if (this.shake > 0) {

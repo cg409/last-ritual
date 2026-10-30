@@ -4,13 +4,13 @@ import { show, on, q, esc } from './dom.js';
 import { sfx } from '../audio.js';
 import { gameTitle } from '../title.js';
 
-export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLoadout, onFriends, onLeaderboard, requests = 0, name, onName, locked = false, profile = null }) {
+export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLoadout, onFriends, onLeaderboard, onReport, requests = 0, name, onName, locked = false, profile = null }) {
   const words = gameTitle().split(' '), last = words.pop();
   const items = [['sp', 'Singleplayer', 'You and four souls bound by the curse'], ['mp', 'Multiplayer', 'Gather with the living — or hunt them'],
     ['lo', 'Loadout', 'Character · monster · perks · traps'],
     ['how', 'The Rites', 'How the ritual is performed'], ['set', 'Settings', 'Video · audio · controls']];
   // social corner (bottom right)
-  const side = [['fr', 'Friends', '☩'], ['prof', 'Profile', '✠'], ['lbd', 'Leaderboard', '♛']];
+  const side = [['fr', 'Friends', '☩'], ['prof', 'Profile', '✠'], ['rep', 'Report', '!'], ['lbd', 'Leaderboard', '♛']];
   show(`
     <div class="screen menuv2">
       <div class="mm-fade"></div>
@@ -25,13 +25,13 @@ export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLo
       </div>
       ${profile ? `<button class="mm-badge" id="mm-badge" title="Open your profile"><div class="bl"><span>LEVEL</span><b>${profile.level}</b></div>
         <div class="bc"><div>${esc(name)}</div><small>${profile.account ? 'Account' : 'Guest'}</small><small>◉ ${profile.coins} · ◆ ${profile.shards}</small></div></button>` : ''}
-      <nav class="mm-side">${side.map(([id, label, ic]) => `<button class="mm-sbtn" id="${id}"><b>${ic}</b><span class="mm-l">${label}${id === 'fr' && requests ? `<i class="mm-badge-n">${requests}</i>` : ''}</span></button>`).join('')}</nav>
+      <nav class="mm-side">${side.map(([id, label, ic]) => `<button class="mm-sbtn ${id === 'rep' ? 'sm' : ''}" id="${id}"><b>${ic}</b><span class="mm-l">${label}${id === 'fr' && requests ? `<i class="mm-badge-n">${requests}</i>` : ''}</span></button>`).join('')}</nav>
       <div class="mm-foot"><span>WASD · SHIFT · E · SPACE</span><span>Headphones recommended</span><span>v1.0</span></div>
     </div>`);
   q('#nm').addEventListener('input', (e) => onName(e.target.value));
   document.querySelectorAll('.mm-item, .mm-sbtn').forEach((b) => { b.addEventListener('mouseenter', () => sfx.hover()); b.addEventListener('click', () => sfx.click()); });
   on('#sp', 'click', onSingle); on('#mp', 'click', onMulti); on('#how', 'click', onHow); on('#set', 'click', onSettings);
-  on('#prof', 'click', onProfile); on('#mm-badge', 'click', onProfile); on('#lo', 'click', onLoadout); on('#fr', 'click', onFriends); on('#lbd', 'click', onLeaderboard);
+  on('#prof', 'click', onProfile); on('#mm-badge', 'click', onProfile); on('#lo', 'click', onLoadout); on('#fr', 'click', onFriends); on('#lbd', 'click', onLeaderboard); on('#rep', 'click', onReport);
 }
 
 const TIPS = [

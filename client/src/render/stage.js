@@ -11,6 +11,7 @@ import { LightPool } from './lights.js';
 import { buildSky } from './sky.js';
 import { GradeShader } from './grade.js';
 import { settings, graphics, onSettings } from '../settings.js';
+import { liteScan } from './assets.js';
 
 const _f = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _s = new THREE.Vector3();
 
@@ -70,7 +71,8 @@ export class Stage {
 
   applySettings() {
     const gfx = graphics(), v = settings().video;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, gfx.pixelRatio));
+    this.ratio = gfx.pixelRatio; this.fpsT = 0; this.fpsN = 0;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.ratio));
     this.renderer.shadowMap.enabled = gfx.shadows;
     this.moon.castShadow = gfx.shadows;
     if (this.moon.shadow.mapSize.x !== gfx.shadowRes) {
@@ -79,7 +81,7 @@ export class Stage {
     }
     this.bloom.enabled = gfx.bloom;
     this.smaa.enabled = gfx.antialias;
-    this.camera.far = gfx.drawDist + 60; this.camera.fov = v.fov; this.camera.updateProjectionMatrix();
+    this.camera.far = gfx.drawDist + (gfx.lite ? 22 : 60); this.camera.fov = v.fov; this.camera.updateProjectionMatrix();
     this.grade.uniforms.uGrain.value = v.filmGrain ? 1 : 0;
     this.grade.uniforms.uVignette.value = v.vignette ? 1 : 0.3;
     this.grade.uniforms.uBright.value = v.brightness;
@@ -109,8 +111,21 @@ export class Stage {
     this.pool.update(this.camera.position, t);
   }
 
+  // Dynamic resolution (weak machines): if the frame rate stays low, render at a lower resolution until it
+  // recovers; if there is lots of headroom, sharpen again. Only the pixel count changes, never the scene.
+  adapt(dt) {
+    const gfx = graphics(); if (!gfx.adaptive || dt <= 0) return;
+    this.fpsT += dt; this.fpsN++;
+    if (this.fpsT < 2.5) return;
+    const fps = this.fpsN / this.fpsT; this.fpsT = 0; this.fpsN = 0;
+    let r = this.ratio;
+    if (fps < 24) r = Math.max(gfx.minRatio || 0.4, r * 0.82);
+    else if (fps > 52) r = Math.min(gfx.pixelRatio, r * 1.12);
+    if (Math.abs(r - this.ratio) > 0.01) { this.ratio = r; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, r)); this.resize(); }
+  }
+
   render() {
-    if (!graphics().noPost) { this.composer.render(); return; }
+    if (graphics().lite && (this.liteT = (this.liteT || 0) + 1) % 150 === 0) liteScan(this.scene); // catch newly spawned props    if (!graphics().noPost) { this.composer.render(); return; }
     // Ultra low / mobile: straight to the screen — no bloom, grade or AA passes (tone mapping still
     // applies; the brightness setting scales the exposure instead of the grade pass).
     const r = this.renderer, e = r.toneMappingExposure;

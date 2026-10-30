@@ -73,6 +73,13 @@ export class LobbyManager {
     this.broadcast(lobby);
   }
 
+  // the host makes the lobby private (hidden from Quick Join and the open list; only reachable by code) or public
+  setPrivate(socket, v) {
+    const lobby = this.lobbyOf(socket); if (!lobby || lobby.host !== socket.id || lobby.game) return;
+    lobby.private = !!v; this.broadcast(lobby);
+    this.io.to(lobby.code).emit('lobby:chat', { sys: true, text: lobby.private ? 'The circle is now PRIVATE - only those with the code can enter.' : 'The circle is now PUBLIC - anyone can join.' });
+  }
+
   ready(socket, r) {
     const lobby = this.lobbyOf(socket); if (!lobby) return;
     const me = lobby.members.find((m) => m.id === socket.id); if (me) me.ready = r;
@@ -124,7 +131,7 @@ export class LobbyManager {
   lobbyOf(socket) { return this.lobbies.get(this.bySocket.get(socket.id)); }
   broadcast(lobby) {
     this.io.to(lobby.code).emit('lobby:state', {
-      code: lobby.code, name: lobby.name, host: lobby.host, inGame: !!lobby.game,
+      code: lobby.code, name: lobby.name, host: lobby.host, inGame: !!lobby.game, private: !!lobby.private,
       members: lobby.members.map(({ id, name, ready, skin, monsterPref, trap, perks, level }) => ({ id, name, ready, skin, monsterPref, trap, perks, level })),
     });
   }

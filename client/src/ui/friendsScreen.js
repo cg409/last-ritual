@@ -24,7 +24,7 @@ export function friendsScreen({ onBack, onSignIn, onJoin }) {
     const d = data;
     wrap(`
       <form class="fr-add" id="fr-form" onsubmit="return false">
-        <input class="field" id="fr-name" maxlength="16" placeholder="Add a friend by name" autocomplete="off" />
+        <div class="fr-find"><input class="field" id="fr-name" maxlength="16" placeholder="Add a friend by name" autocomplete="off" /><div class="fr-sugg" id="fr-sugg" hidden></div></div>
         <button class="btn small primary" type="submit" ${d && d.friends.length >= d.max ? 'disabled' : ''}>Send request</button>
       </form>
       <div class="fr-msg ${err ? 'err' : ''}">${esc(err || msg)}</div>
@@ -42,6 +42,22 @@ export function friendsScreen({ onBack, onSignIn, onJoin }) {
         <div class="fr-row"><div class="fr-dot req"></div><div class="fr-n"><b>${esc(n)}</b><span>waiting for an answer</span></div>
           <button class="btn small" data-rem="${esc(n)}">Cancel</button></div>`).join('')}</div>` : ''}`}`);
     on('#fr-back', 'click', () => { clearInterval(timer); onBack(); });
+    // live suggestions: the closest names while you type (typos included)
+    let st = null, seq = 0;
+    const box = q('#fr-sugg'), inp = q('#fr-name');
+    const STAT = { friend: 'already friends', pending: 'request sent', incoming: 'wants to be your friend', none: '' };
+    const suggest = async () => {
+      const text = inp.value.trim(), my = ++seq;
+      if (!text) { box.hidden = true; return; }
+      let r; try { r = await friendsApi.search(text); } catch { return; }
+      if (my !== seq || !r?.ok) return;
+      box.hidden = !r.results.length;
+      box.innerHTML = r.results.map((x) => `<button type="button" class="fr-s" data-n="${esc(x.name)}" ${x.status === 'friend' || x.status === 'pending' ? 'disabled' : ''}><b>${esc(x.name)}</b><span>Lv ${x.level}${STAT[x.status] ? ' - ' + STAT[x.status] : ''}</span></button>`).join('');
+    };
+    inp.addEventListener('input', () => { clearTimeout(st); st = setTimeout(suggest, 180); });
+    box.addEventListener('mousedown', (e) => e.preventDefault()); // keep the focus in the text box
+    box.addEventListener('click', (e) => { const b = e.target.closest('.fr-s'); if (!b || b.disabled) return; inp.value = b.dataset.n; box.hidden = true; inp.focus(); });
+    inp.addEventListener('blur', () => setTimeout(() => { box.hidden = true; }, 150));
     q('#fr-form').addEventListener('submit', async () => {
       const n = q('#fr-name').value.trim(); if (!n) return;
       act(friendsApi.request(n), (r) => (r.friend ? `${r.friend} is now your friend.` : `Request sent to ${r.sent}.`));

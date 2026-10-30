@@ -121,11 +121,13 @@ export class LobbyUI {
     q('#lb-actions').innerHTML = solo
       ? '<div class="lb-wait">Your loadout is saved for every match.</div><button class="btn small" id="lb-leave">← Back to the menu</button>'
       : `${isHost ? '<button class="btn primary lb-begin" id="lb-start">Begin the Ritual</button>' : '<div class="lb-wait">Waiting for the host to begin…</div>'}
-      <div class="row" style="justify-content:space-between">${ready}<button class="btn small" id="lb-leave">Leave</button></div>`;
+      <div class="row" style="justify-content:space-between">${ready}${multi && account.mode === 'account' ? '<button class="btn small" id="lb-inv">Invite friend</button>' : ''}${multi && isHost ? '<button class="btn small" id="lb-priv">' + (state.private ? 'Private lobby' : 'Public lobby') + '</button>' : ''}<button class="btn small" id="lb-leave">Leave</button></div>`;
     for (const b of this.el.querySelectorAll('#lb-actions .btn')) b.addEventListener('mouseenter', () => sfx.hover());
     on('#lb-start', 'click', () => { sfx.click(); this.o.onStart(); });
     on('#lb-leave', 'click', () => { sfx.click(); this.o.onLeave(); });
     on('#lb-ready', 'click', () => { sfx.click(); this.o.onReady(!me.ready); });
+    on('#lb-inv', 'click', () => { sfx.click(); this.o.onInvite?.(); });
+    on('#lb-priv', 'click', () => { sfx.click(); this.o.onPrivate?.(!state.private); });
 
     // chat (only re-rendered when it changed, the input is never touched)
     const chat = state.chat || [];
@@ -307,7 +309,8 @@ export function multiMenu({ onQuick, onCreate, onJoin, onBack, lobbies, error, s
       <div class="lobby-list">${(lobbies || []).map((l) => `<div class="item" data-code="${esc(l.code)}"><span>${esc(l.name)}</span><span>${l.players}/${l.max}</span></div>`).join('') || '<div class="lore"><i>No open lobbies. Create one.</i></div>'}</div>
       <button class="btn small" id="back">Back</button>
     </div></div>`);
-  on('#quick', 'click', onQuick); on('#create', 'click', onCreate); on('#back', 'click', onBack);
-  on('#join', 'click', () => onJoin(q('#code').value));
+  const busy = (fn) => (_, el) => { el.classList.add('busy'); el.dataset.t = el.textContent; el.textContent = 'One moment...'; fn(); }; // instant feedback while the server answers
+  on('#quick', 'click', busy(onQuick)); on('#create', 'click', busy(onCreate)); on('#back', 'click', onBack);
+  on('#join', 'click', busy(() => onJoin(q('#code').value)));
   on('.item', 'click', (_, el) => onJoin(el.dataset.code));
 }

@@ -36,7 +36,7 @@ export class FogBanks {
     this.fog = fog;
     TEX ||= [wispTexture(7), wispTexture(1234), wispTexture(98765)];
     this.group = new THREE.Group(); root.add(this.group);
-    const per = graphics().noPost ? 6 : 22; // fewer wisps on weak machines (they cost fill-rate)
+    const per = graphics().lite ? 0 : graphics().noPost ? 6 : 22; // fewer wisps on weak machines (they cost fill-rate)
     this.banks = fog.patches(0).map(() => Array.from({ length: per }, (_, k) => {
       const mat = new THREE.SpriteMaterial({ map: TEX[k % 3], color: 0x9aa4b0, transparent: true, opacity: 0, depthWrite: false, rotation: Math.random() * 6.28 });
       const s = new THREE.Sprite(mat);

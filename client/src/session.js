@@ -8,6 +8,10 @@ import { TICK_RATE } from '@shared/constants.js';
 // The server address: edit dist/config.js after building (no rebuild needed), or set VITE_SERVER_URL at build time.
 const cfg = typeof window !== 'undefined' && window.TLR_SERVER_URL && !/PASTE/.test(window.TLR_SERVER_URL) ? window.TLR_SERVER_URL.replace(/\/+$/, '') : '';
 export const SERVER_URL = cfg || import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+// Opened from the internet but still pointing at localhost = the Render address was never put into config.js.
+export const SERVER_MISCONFIGURED = /localhost|127\.0\.0\.1/.test(SERVER_URL) && !/^(localhost|127\.0\.0\.1|192\.168\.|10\.)/.test(location.hostname);
+// Free servers fall asleep; poking /health the moment the page opens wakes it while the game loads.
+export function wakeServer() { if (!SERVER_MISCONFIGURED) fetch(SERVER_URL + '/health', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); }
 
 export class LocalSession {
   constructor(roster, myId) {
@@ -40,8 +44,9 @@ export class LocalSession {
 
 export class NetClient {
   constructor() {
-    this.socket = io(SERVER_URL, { transports: ['websocket', 'polling'], autoConnect: false, reconnectionAttempts: 5 });
+    this.socket = io(SERVER_URL, { transports: ['websocket', 'polling'], autoConnect: false, reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000, reconnectionDelayMax: 4000, timeout: 20000 });
     this.handlers = {};
+    this.socket.on('connect', () => { const t = this.getToken?.(); if (t) this.socket.emit('hello', t); }); // (re)announce after every reconnect
     for (const ev of ['lobby:state', 'lobby:chat', 'match:start', 'snap', 'connect', 'disconnect', 'connect_error']) {
       this.socket.on(ev, (d) => this.handlers[ev]?.(d));
     }
@@ -51,13 +56,14 @@ export class NetClient {
   connect() {
     return new Promise((res, rej) => {
       if (this.socket.connected) return res();
+      if (SERVER_MISCONFIGURED) return rej(new Error('This game is not linked to its server yet: put your Render address in config.js (see DEPLOY.md) and upload the site again.'));
       const to = setTimeout(() => rej(new Error('Server did not respond. (A sleeping Render server can take ~50s to wake up — try again.)')), 60000);
       this.socket.once('connect', () => { clearTimeout(to); res(); });
       this.socket.once('connect_error', () => {});
       this.socket.connect();
     });
   }
-  call(ev, data) { return new Promise((res) => this.socket.emit(ev, data, res)); }
+  call(ev, data) { return new Promise((res) => (data === undefined ? this.socket.emit(ev, res) : this.socket.emit(ev, data, res))); }
   emit(ev, data) { this.socket.emit(ev, data); }
 }
 

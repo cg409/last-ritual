@@ -2,6 +2,7 @@
 import './style.css';
 import './screens.css';
 import './hud.css';
+import './mobile.css';
 import * as THREE from 'three';
 import { Stage } from './render/stage.js';
 import { loadCharacterAssets, assetsReady, Character } from './render/characters.js';
@@ -14,15 +15,18 @@ import { initAudio, startAmbience, stopAmbience } from './audio.js';
 import { mainMenu, loadingScreen, monsterReveal, howTo } from './ui/menu.js';
 import { LobbyUI } from './ui/lobby.js';
 import { endScreen } from './ui/end.js';
-import { LocalSession } from './session.js';
+import { LocalSession, wakeServer } from './session.js';
 import { Match } from './match.js';
 import { setupMultiplayer } from './multiplayer.js';
 import { MONSTER_IDS, BOT_NAMES, MAX_PLAYERS, TRAP_IDS } from '@shared/constants.js';
-import { account, saveProfile, loadoutPrefs, applyMatch, resumeSession, playAsGuest, presence, setPresence } from './profile.js';
+import { account, saveProfile, loadoutPrefs, applyMatch, syncNow, resumeSession, playAsGuest, presence, setPresence } from './profile.js';
 import { friendsScreen } from './ui/friendsScreen.js';
 import { levelUpAnim } from './ui/levelUp.js';
 import { leaderboardScreen } from './ui/leaderboard.js';
-import { chooseGraphicsFirstTime } from './ui/gfxChooser.js';
+import { autoGraphics } from './ui/gfxChooser.js';
+import { installScreen } from './ui/install.js';
+import { reportScreen } from './ui/report.js';
+import { isTouch as touchDevice, goFullscreen } from './touch.js';
 import { playClip, readyCount } from './sounds.js';
 import { getCtx } from './audio.js';
 import { authScreen } from './ui/account.js';
@@ -51,6 +55,7 @@ function loop() {
   else app.menuScene?.update(dt);
   // the wind never stops — in the menus and lobby too (softly, under the music)
   if (!app.match && t > menuWindAt) { const g = playClip('wind', { vol: 0.12 + Math.random() * 0.18, pan: Math.random() * 1.6 - 0.8, rate: 0.85 + Math.random() * 0.25 }); menuWindAt = t + (g ? g.len * 1000 * (0.6 + Math.random() * 0.5) : 1000); }
+  stage.adapt(dt);
   stage.render();
   requestAnimationFrame(loop);
 }
@@ -87,6 +92,7 @@ function toMenu() {
     onName: (v) => { app.name = v.slice(0, 16); P.name = app.name; localStorage.setItem('hv-name', app.name); saveProfile(); },
     onSingle: singleLobby, onMulti: () => mp.multiEntry(), onHow: () => howTo(toMenu), onLoadout: loadoutScreen,
     requests: presence.requests, onLeaderboard: () => leaderboardScreen({ onBack: toMenu }),
+    onReport: () => reportScreen({ onBack: toMenu }),
     onFriends: () => friendsScreen({ onBack: toMenu, onSignIn: () => authScreen({ onDone: toMenu }), onJoin: (code) => mp.multiEntry('', code) }),
     onProfile: () => profileScreen({ onBack: toMenu, onSignIn: () => authScreen({ onDone: toMenu }) }),
     onSettings: () => { const ui = show('<div class="screen" id="setwrap"></div>'); settingsPanel(ui.querySelector('#setwrap'), toMenu); },
@@ -147,13 +153,19 @@ async function startMatch(session, myId, back) {
   const ld = loadingScreen('Summoning the realm');
   if (!assetsReady()) await loadCharacterAssets((k) => ld.progress(k * 0.5));
   ld.progress(0.6);
+  if (app.lateModels) { ld.text('Raising the graveyard'); await app.lateModels; }
   await new Promise((r) => setTimeout(r, 50));
   backdrop('none');
   if (window.__hv) { window.__hvGame = session.game; window.__hvInput = input; } // ?debug=1 test hooks
+  // Closing / refreshing the tab mid-match still banks the XP you earned so far (it counts on the leaderboard).
+  let flushed = false;
+  const flushMatch = () => { if (flushed || !app.match) return; flushed = true; const m = app.match; if (m.lastMe && m.snap) applyMatch(m.abandonResult(), { ...m.lastMe, cursedChest: !!m.gotCursed }); syncNow(); };
+  window.addEventListener('pagehide', flushMatch);
   const match = new Match({ stage, input, session, myId, onEnd: (result, _id, lastMe) => {
     app.match = null;
     backdrop('menu'); startAmbience(0.6);
-    const rewards = applyMatch(result, lastMe); // XP, level, coins, shards, achievements
+    window.removeEventListener('pagehide', flushMatch);
+    const rewards = flushed ? null : applyMatch(result, lastMe); // XP, level, coins, shards, achievements
     if (rewards && rewards.after.level > rewards.before.level) app.pendingLevelUp = [rewards.before.level, rewards.after.level];
     endScreen(result, myId, { onAgain: back, onMenu: toMenu, againLabel: session instanceof LocalSession ? 'Play again' : 'Back to lobby', rewards });
   } });
@@ -175,19 +187,45 @@ async function startMatch(session, myId, back) {
 }
 
 const mp = setupMultiplayer(app, { toMenu, startMatch, backdrop });
+window.addEventListener('tlr-signed-in', () => mp.connectBackground());
 
 window.addEventListener('pointerdown', () => { initAudio(); if (!app.match) startAmbience(0.6); }, { once: true });
+// Phones & tablets: full screen on the first tap of every session (the browser needs a tap), a rotate-your-phone
+// notice in portrait, and a toast when a weekly leaderboard prize arrives.
+function setupDevice() {
+  if (touchDevice) {
+    const rot = document.createElement('div'); rot.className = 'rot-global';
+    rot.innerHTML = '<div class="rg-ico">&#8635;</div><b>Rotate your phone</b><span>The Last Ritual is played in landscape.<br>Turn your phone sideways to continue.</span>';
+    document.body.appendChild(rot);
+    document.addEventListener('click', goFullscreen, true);
+    document.addEventListener('touchend', goFullscreen, { capture: true, passive: true });
+  }
+  window.addEventListener('tlr-reward', (e) => {
+    const t = document.createElement('div'); t.className = 'reward-toast';
+    t.innerHTML = `<b>Weekly champion!</b><span>You finished first on the leaderboard: +${e.detail.shards} soul shards, +${e.detail.coins} ritual coins</span>`;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 9000);
+  });
+  if ('serviceWorker' in navigator && import.meta.env.PROD) navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
 (async () => {
-  await chooseGraphicsFirstTime(stage.renderer); // first launch: pick a graphics setting before anything loads
+  wakeServer(); // a sleeping free server starts waking up now, while the game loads
+  setupDevice();
+  autoGraphics(stage.renderer); // first launch: the graphics setting is picked from the device, nothing is asked
+  await installScreen();        // first screen: install as an app (with the download size) or skip
   const ld = loadingScreen('Waking the dead');
   try {
     setAnisotropy(graphics().anisotropy);
     let a = 0, b = 0;
+    // Stage 1 (before the menu): characters + the few models the menu / lobby scenery uses.
+    // Stage 2 (in the background while you browse the menu): everything only a match needs.
+    const EARLY = ['rock_moss_set_01', 'fern_02', 'boulder_01', 'dry_branches_medium_01'];
     await Promise.all([
-      loadCharacterAssets((k) => { a = k; ld.progress(a * 0.3 + b * 0.7); }),
-      loadModels(ALL_MODELS, (k) => { b = k; ld.progress(a * 0.3 + b * 0.7); }),
+      loadCharacterAssets((k) => { a = k; ld.progress(a * 0.75 + b * 0.25); }),
+      loadModels(EARLY, (k) => { b = k; ld.progress(a * 0.75 + b * 0.25); }),
       loadCrowAssets(),
     ]);
+    app.lateModels = loadModels(ALL_MODELS.filter((id) => !EARLY.includes(id)));
   } catch (e) { ld.text('Failed to load assets: ' + e.message); return; }
   if (new URLSearchParams(location.search).has('debug')) window.__hv = { Character, stage, getModel, THREE, buildTrips, Pallets, app, sounds: { playClip, levelUpAnim, readyCount, getCtx } };
   app.menuScene = new MenuScene(stage);

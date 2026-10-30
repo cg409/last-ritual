@@ -18,6 +18,14 @@ export function recommendPreset(renderer) {
   return cores <= 4 || mem <= 4 ? 'low' : 'medium';
 }
 
+// First launch: no question is asked - the setting is picked from the device (phone / GPU / cores / memory).
+// It can be changed any time in Settings > Graphics (the game also lowers its resolution by itself if it runs slowly).
+export function autoGraphics(renderer) {
+  if (localStorage.getItem(FLAG) || new URLSearchParams(location.search).has('debug')) return;
+  update({ preset: recommendPreset(renderer) });
+  localStorage.setItem(FLAG, '1');
+}
+
 export function chooseGraphicsFirstTime(renderer) {
   if (localStorage.getItem(FLAG) || new URLSearchParams(location.search).has('debug')) return Promise.resolve();
   const rec = recommendPreset(renderer);

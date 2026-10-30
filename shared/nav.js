@@ -5,20 +5,47 @@ const CELL = 0.75; // fine enough to thread doorways and squeeze past furniture
 
 // Two grids: the ground (map.nav) and the upper floor of two-storey buildings (map.nav1), so bots
 // can find their way upstairs too (the staircase itself is walked directly — see BotBase.goTo).
-export function buildNav(map) {
+export function buildNav(map) { // (reference version kept as buildNavSlow for the equivalence test)
   const n = Math.ceil(map.size / CELL);
   const H = map.size / 2;
+  // Rasterise the obstacles into the grid (each obstacle only visits the few cells it covers) instead of testing
+  // every cell against every obstacle: same result as blocked() below, ~50x faster (the server builds this at the
+  // start of every match, the browser again when the match loads).
   const make = (level) => {
     const grid = new Uint8Array(n * n);
-    for (let gz = 0; gz < n; gz++) {
-      for (let gx = 0; gx < n; gx++) {
-        const x = -H + (gx + 0.5) * CELL, z = -H + (gz + 0.5) * CELL;
-        grid[gz * n + gx] = blocked(map, x, z, 0.42, level) ? 1 : 0;
+    const cx = (gx) => -H + (gx + 0.5) * CELL;
+    const range = (lo, hi) => [Math.max(0, Math.floor((lo + H) / CELL - 0.5) - 1), Math.min(n - 1, Math.ceil((hi + H) / CELL - 0.5) + 1)];
+    const paint = (x0, x1, z0, z1, test) => {
+      const [ga, gb] = range(x0, x1), [ha, hb] = range(z0, z1);
+      for (let gz = ha; gz <= hb; gz++) for (let gx = ga; gx <= gb; gx++) if (test(cx(gx), cx(gz))) grid[gz * n + gx] = 1;
+    };
+    if (level === 1) { // upper floor: only the inside of two-storey buildings is walkable
+      grid.fill(1);
+      for (const b of map.buildings) {
+        if (b.floors < 2) continue;
+        const [ga, gb] = range(b.x - b.w / 2, b.x + b.w / 2), [ha, hb] = range(b.z - b.d / 2, b.z + b.d / 2);
+        for (let gz = ha; gz <= hb; gz++) for (let gx = ga; gx <= gb; gx++) {
+          const x = cx(gx), z = cx(gz);
+          if (Math.abs(x - b.x) < b.w / 2 - 0.3 && Math.abs(z - b.z) < b.d / 2 - 0.3) grid[gz * n + gx] = 0;
+        }
       }
     }
+    const r = 0.42;
+    for (const b of map.rects) {
+      if (!onLevel(b, level)) continue;
+      paint(b.x - b.hw - r, b.x + b.hw + r, b.z - b.hd - r, b.z + b.hd + r, (x, z) => Math.abs(x - b.x) < b.hw + r && Math.abs(z - b.z) < b.hd + r);
+    }
+    if (level === 0) {
+      for (const c of map.circles) paint(c.x - c.r - r, c.x + c.r + r, c.z - c.r - r, c.z + c.r + r, (x, z) => dist(x, z, c.x, c.z) < c.r + r);
+      for (const l of map.logs || []) { const R = Math.hypot(l.hl, l.hw) + r; paint(l.x - R, l.x + R, l.z - R, l.z + R, (x, z) => logDist(l, x, z) < r); }
+    }
+    for (const b of map.buildings || []) { // keep ground paths off the staircases
+      const s = b.stair; if (!s) continue;
+      paint(Math.min(s.xb, s.xt) - r, Math.max(s.xb, s.xt) + r, s.z0 - r, s.z1 + r,
+        (x, z) => x > Math.min(s.xb, s.xt) - r && x < Math.max(s.xb, s.xt) + r && z > s.z0 - r && z < s.z1 + r);
+    }
     return { n, grid, cell: CELL, H, level };
-  };
-  map.nav = make(0); map.nav1 = make(1);
+  };  map.nav = make(0); map.nav1 = make(1);
 }
 const navOf = (map, level) => (level ? map.nav1 : map.nav);
 

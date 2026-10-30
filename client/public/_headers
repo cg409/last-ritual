@@ -1,0 +1,13 @@
+/assets/models/*
+  Cache-Control: public, max-age=604800
+/assets/textures/*
+  Cache-Control: public, max-age=604800
+/assets/sounds/*
+  Cache-Control: public, max-age=604800
+/assets/quick/*
+  Cache-Control: public, max-age=604800
+/models/*
+  Cache-Control: public, max-age=604800
+/config.js
+  Cache-Control: no-cache
+

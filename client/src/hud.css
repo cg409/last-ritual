@@ -106,20 +106,18 @@ html.touch, html.touch body { overscroll-behavior: none; -webkit-user-select: no
 .tc-knob { position: absolute; left: 35px; top: 35px; width: 50px; height: 50px; border-radius: 50%; background: rgba(220,190,140,.45); border: 2px solid rgba(255,235,200,.6); }
 .tc-top { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
 .tc-top button { min-width: 52px; height: 34px; border-radius: 17px; border: 1px solid rgba(220,200,170,.4); background: rgba(10,8,8,.55); color: #d8c9a8; font: 700 11px 'Cinzel'; letter-spacing: .1em; }
-.tc-btns { position: absolute; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 300px; display: flex; flex-wrap: wrap-reverse; flex-direction: row-reverse; justify-content: flex-start; align-content: flex-start; gap: 8px; pointer-events: none; }
-.tc-b { pointer-events: auto; position: relative; width: 58px; height: 58px; border-radius: 50%; border: 2px solid rgba(220,190,140,.5); background: rgba(14,10,10,.6); color: #e8dcc0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; touch-action: none; }
+.tc-btns { position: absolute; inset: 0; pointer-events: none; }
+.tc-b { pointer-events: auto; position: absolute; border-radius: 50%; border: 2px solid rgba(220,190,140,.5); background: radial-gradient(circle at 35% 30%, rgba(60,44,40,.75), rgba(14,10,10,.7)); color: #e8dcc0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; touch-action: none; box-shadow: 0 0 10px rgba(0,0,0,.6); }
 .tc-b[hidden] { display: none; }
-.tc-b i { font-style: normal; font-size: 20px; line-height: 1; }
-.tc-b small { font: 700 8px 'Cinzel'; letter-spacing: .06em; margin-top: 2px; opacity: .85; }
-.tc-b.big { width: 84px; height: 84px; border-color: rgba(230,60,50,.7); }
-.tc-b.big i { font-size: 30px; }
-.tc-b.on { background: rgba(190,40,30,.6); transform: scale(.94); }
+.tc-b i { font-style: normal; font-size: calc(var(--d, 56px) * .36); line-height: 1; }
+.tc-b small { font: 700 calc(var(--d, 56px) * .14) 'Cinzel'; letter-spacing: .05em; margin-top: 2px; opacity: .9; max-width: 92%; overflow: hidden; white-space: nowrap; }
+#tcx-never {}.tc-b.on { background: rgba(190,40,30,.6); transform: scale(.94); }
 .tc-b.lock { background: rgba(190,150,60,.5); }
 .tc-rotate { display: none; position: fixed; inset: 0; z-index: 30; background: #050303; color: #d8c9a8; font: 18px 'Cinzel'; letter-spacing: .1em; text-align: center; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
 .tc-rotate div { font-size: 64px; }
 @media (orientation: portrait) { .tc-rotate { display: flex; } }
-html.touch .hud .br { bottom: auto; top: 60px; right: 12px; }
-html.touch .hud .feed { top: 100px; right: 12px; }
+html.touch .hud .br { top: auto; right: auto; bottom: 12px; left: 12px; text-align: left; }
+html.touch .hud .feed { top: 52px; left: 50%; right: auto; transform: translateX(-50%); text-align: center; max-width: 46vw; }
 html.touch .hud .tl { top: 8px; left: 12px; }
 html.touch .hud .minimap { top: 100px; left: 12px; transform: scale(.55); transform-origin: top left; }
 html.touch .hud .help { display: none; }
@@ -127,3 +125,15 @@ html.touch .lb-side, html.touch .lb-drawer, html.touch .overlay .panel { overflo
 html.touch .hud .inv { transform: scale(.8); transform-origin: bottom left; }
 @media (max-height: 520px) { html.touch .screen { zoom: .8; } html.touch .tc-b { width: 52px; height: 52px; } html.touch .tc-b.big { width: 76px; height: 76px; } }
 html.touch .lb-begin { position: sticky; bottom: 0; z-index: 3; }
+
+/* mobile button-layout editor */
+.tc-edit { position: fixed; inset: 0; z-index: 1000; background: radial-gradient(ellipse at 50% 30%, #1a1210, #050303); color: #d8c9a8; font: 13px 'Cinzel'; touch-action: none; }
+.tc-edit .te-bar { position: absolute; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0,0,0,.55); z-index: 3; }
+.tc-edit .te-bar button { padding: 6px 12px; border: 1px solid rgba(220,190,140,.5); background: rgba(14,10,10,.8); color: #e8dcc0; font: 700 12px 'Cinzel'; border-radius: 4px; }
+.tc-edit .te-bar button.on, .tc-edit .te-bar button.primary { background: #6b1414; border-color: #c43; }
+.tc-edit .te-tabs { display: flex; gap: 4px; } .tc-edit .te-end { margin-left: auto; display: flex; gap: 8px; }
+.tc-edit .te-stick { position: absolute; left: 5%; bottom: 8%; width: 130px; height: 130px; border-radius: 50%; border: 2px dashed rgba(220,200,170,.3); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: .6; }
+.tc-edit .te-look { position: absolute; left: 38%; top: 20%; font-size: 11px; opacity: .35; }
+.tc-edit .te-field { position: absolute; inset: 0; }
+.tc-edit .tc-b.te { opacity: 1 !important; cursor: grab; }
+.tc-edit .tc-b.te.sel { border-color: #f0c040; box-shadow: 0 0 14px rgba(240,192,64,.7); }

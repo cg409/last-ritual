@@ -2,12 +2,14 @@
 // change); guests keep it in this browser. Holds level/XP (max 100), ritual coins & soul shards,
 // unlocks and upgrade levels, the loadout, lifetime stats and achievements.
 import { STARTER, MAX_LEVEL, UNLOCK_COST, UPGRADE_COST, MAX_PERKS, PERKS, SKINS } from '@shared/constants.js';
-import { SERVER_URL } from './session.js';
+import { SERVER_URL, SERVER_MISCONFIGURED } from './session.js';
 
 const GUEST_KEY = 'tlr-profile-guest', AUTH_KEY = 'tlr-auth';
 
 // XP needed to go from level L to L+1 (gently rising curve; level 100 is the cap).
-export const xpToNext = (L) => Math.round(120 + (L - 1) * 45 + (L - 1) ** 1.6 * 2);
+// XP needed for the next level (slower than before: a normal match is worth about one level early on, less later).
+// Keep in sync with server/accounts.js.
+export const xpToNext = (L) => Math.round(250 + (L - 1) * 90 + (L - 1) ** 1.9 * 3);
 
 // Achievements. More will be added; each has a progress function (value / goal).
 export const ACHIEVEMENTS = [
@@ -51,6 +53,7 @@ export const friendsApi = {
   request: (username) => withTimeout(api('friends/request', 'POST', { username })),
   accept: (username) => withTimeout(api('friends/accept', 'POST', { username })),
   remove: (username) => withTimeout(api('friends/remove', 'POST', { username })),
+  search: (q) => withTimeout(api('users/search?q=' + encodeURIComponent(q)), 8000),
 };
 // Presence: tell the server where we are (menu / lobby + code / match) so friends can see it.
 export const presence = { where: 'menu', code: null, requests: 0, onRequests: null };
@@ -65,6 +68,18 @@ export function pingPresence() {
   }).catch(() => {});
 }
 setInterval(pingPresence, 40000);
+
+// Weekly-champion prizes waiting on the server (10 soul shards + 400 ritual coins) are collected here.
+export async function claimRewards() {
+  if (account.mode !== 'account' || !account.token || !account.profile) return null;
+  try {
+    const r = await withTimeout(api('claim', 'POST', {}), 15000);
+    if (!r.ok || !r.rewards?.length) return null;
+    let coins = 0, shards = 0; for (const x of r.rewards) { coins += x.coins || 0; shards += x.shards || 0; }
+    account.profile.coins += coins; account.profile.shards += shards; saveProfile();
+    return { coins, shards };
+  } catch { return null; }
+}
 
 export async function fetchLeaderboard() {
   try { return await withTimeout(api('leaderboard'), 8000); } catch { return null; }
@@ -102,13 +117,14 @@ function normalize(p, name) {
 export const account = { mode: 'guest', username: null, token: null, profile: null, online: false };
 
 async function api(path, method = 'GET', body) {
+  if (SERVER_MISCONFIGURED) throw new Error('This game is not linked to its server yet (config.js). You can still play as a guest.');
   const r = await fetch(SERVER_URL + '/api/' + path, {
     method, headers: { 'Content-Type': 'application/json', ...(account.token ? { Authorization: 'Bearer ' + account.token } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? JSON.stringify(body) : undefined, keepalive: method !== 'GET' && !!body && JSON.stringify(body).length < 60000,
   });
   return r.json();
 }
-const withTimeout = (p, ms = 8000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('The server did not answer. (A sleeping server can take ~50s to wake — try again, or play as a guest.)')), ms))]);
+const withTimeout = (p, ms = 45000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('The server did not answer. (A sleeping server can take ~50s to wake — try again, or play as a guest.)')), ms))]);
 
 function signedIn(res) {
   account.mode = 'account'; account.username = res.username; account.token = res.token || account.token; account.online = true;
@@ -116,6 +132,8 @@ function signedIn(res) {
   account.profile.name = res.username;
   localStorage.setItem(AUTH_KEY, JSON.stringify({ username: account.username, token: account.token }));
   if (!res.profile) saveProfile();
+  window.dispatchEvent(new Event('tlr-signed-in'));
+  if (res.rewards?.length) claimRewards().then((r) => r && window.dispatchEvent(new CustomEvent('tlr-reward', { detail: r })));
 }
 export async function signIn(username, password) {
   const res = await withTimeout(api('login', 'POST', { username, password }));
@@ -142,12 +160,23 @@ export async function resumeSession() {
   const saved = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
   if (!saved?.token) return false;
   account.token = saved.token;
-  try {
-    const res = await withTimeout(api('profile'), 6000);
-    if (res.ok) { signedIn({ ...res, token: saved.token }); return true; }
-  } catch { /* offline */ }
-  account.token = null;
-  return false;
+  let res = null;
+  try { res = await withTimeout(api('profile'), 20000); } catch { /* server asleep or offline */ }
+  if (res?.ok) { signedIn({ ...res, token: saved.token }); return true; }
+  if (res && !res.ok) { account.token = null; localStorage.removeItem(AUTH_KEY); return false; } // the server really forgot this login
+  // No answer (a free server may be asleep): stay signed in with the saved profile and keep trying quietly.
+  account.mode = 'account'; account.username = saved.username; account.online = false;
+  account.profile = normalize(JSON.parse(localStorage.getItem('tlr-profile-cache') || 'null'), saved.username);
+  account.profile.name = saved.username;
+  window.dispatchEvent(new Event('tlr-signed-in'));
+  const retry = setInterval(async () => {
+    try {
+      const r = await withTimeout(api('profile'), 15000);
+      clearInterval(retry);
+      if (r.ok) { account.online = true; saveProfile(); } else account.online = false;
+    } catch { /* still asleep */ }
+  }, 12000);
+  return true;
 }
 export function signOut() {
   if (account.token) api('logout', 'POST').catch(() => {});
@@ -159,6 +188,7 @@ function loadGuest() { return normalize(JSON.parse(localStorage.getItem(GUEST_KE
 export function playAsGuest() { Object.assign(account, { mode: 'guest', username: null, token: null }); account.profile = loadGuest(); }
 
 let syncT = null;
+export function syncNow() { const p = account.profile; if (account.mode === 'account' && p) { clearTimeout(syncT); api('profile', 'PUT', { profile: p }).catch(() => {}); } }
 export function saveProfile() {
   const p = account.profile; if (!p) return;
   checkAchievements(p);
@@ -186,20 +216,20 @@ export function applyMatch(result, me) {
   const p = account.profile; if (!p || !me) return null;
   const st = me.stats || {}, monster = me.role === 'monster';
   const before = { level: p.level, xp: p.xp };
-  let xp = 60;
-  const lines = [['Ritual completed', 60]];
+  let xp = 40;
+  const lines = [['Ritual completed', 40]];
   const add = (label, n) => { if (n > 0) { xp += n; lines.push([label, n]); } };
   if (monster) {
-    add(`Survivors struck ×${st.hits || 0}`, (st.hits || 0) * 15);
-    add(`Survivors hanged ×${st.hooks || 0}`, (st.hooks || 0) * 60);
-    add(`Souls taken ×${st.kills || 0}`, (st.kills || 0) * 100);
-    if (result.winner === 'monster') add('The hunt is sated', 200);
+    add(`Survivors struck ×${st.hits || 0}`, (st.hits || 0) * 10);
+    add(`Survivors hanged ×${st.hooks || 0}`, (st.hooks || 0) * 40);
+    add(`Souls taken ×${st.kills || 0}`, (st.kills || 0) * 70);
+    if (result.winner === 'monster') add('The hunt is sated', 120);
   } else {
-    add(`Tombs enchanted ×${st.enchants || 0}`, (st.enchants || 0) * 70);
-    add(`Rescues ×${st.rescues || 0}`, (st.rescues || 0) * 50);
-    add(`Wounds tended ×${st.heals || 0}`, (st.heals || 0) * 30);
-    add(`Chests opened ×${st.chests || 0}`, (st.chests || 0) * 20);
-    add(me.state === 'escaped' ? 'Escaped' : 'Survived for a while', me.state === 'escaped' ? 220 : 40);
+    add(`Tombs enchanted ×${st.enchants || 0}`, (st.enchants || 0) * 45);
+    add(`Rescues ×${st.rescues || 0}`, (st.rescues || 0) * 35);
+    add(`Wounds tended ×${st.heals || 0}`, (st.heals || 0) * 20);
+    add(`Chests opened ×${st.chests || 0}`, (st.chests || 0) * 12);
+    add(me.state === 'escaped' ? 'Escaped' : 'Survived for a while', me.state === 'escaped' ? 140 : 25);
   }
   // winning the match pays 20–30 extra ritual coins
   const won = monster ? result.winner === 'monster' : result.winner === 'survivors';

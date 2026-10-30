@@ -6,7 +6,7 @@
 // and comes back out once the heartbeat has faded.
 import { BotBase } from './botBase.js';
 import { dist, angleTo } from '../rng.js';
-import { inGrass } from '../nav.js';
+import { inGrass, lineOfSight } from '../nav.js';
 import { objective } from './survivorGoals.js';
 import { tripAt } from '../trips.js';
 import { palletNear } from '../pallets.js';
@@ -20,6 +20,37 @@ export class SurvivorBot extends BotBase {
     this.bravery = 0.4 + g.random() * 0.6;   // willingness to rescue / stay on tombs
     this.suspicion = 0; this.suspectAt = 3 + (1 - this.skill) * 6 + g.random() * 3; // seconds to see through the Mimic
     this.hideUntilCalm = false; this.calmT = 0; this.zig = g.random() * 6;
+    this.heardAt = null; // where the last footsteps / noise seemed to come from
+  }
+
+  // Ears: the monster's footsteps carry (running much further than walking), walls muffle them, the Stalker is
+  // silent, and a chainsaw is heard from far away. Like a human, the NPC only gets a rough direction.
+  hear(m, md) {
+    const g = this.g, p = this.p;
+    if (m.monster === 'stalker' || (m.monster === 'mimic' && m.disguise)) return null;
+    let r = m.running || m.lunge ? 16 : 8;
+    if (m.sawUntil > g.time || m.revUntil > g.time) r = 40;
+    if (md > r) return null;
+    if (!lineOfSight(g.map, p.x, p.z, m.x, m.z, p.level | 0)) { r *= 0.6; if (md > r) return null; }
+    const err = 2 + md * 0.3;
+    return { x: m.x + (g.random() - 0.5) * err * 2, z: m.z + (g.random() - 0.5) * err * 2, d: md };
+  }
+
+  // Quietly slip away from a danger spot (heard or sensed, not seen): walk or crouch - never sprint, that is loud -
+  // and prefer the direction that puts a wall or tree between us and it, so it cannot see us leave.
+  sneakAway(from, out) {
+    const g = this.g, p = this.p, H = g.map.size / 2 - 6;
+    this.mode = 'sneak';
+    const base = angleTo(from.x, from.z, p.x, p.z);
+    let best = null;
+    for (const da of [0, 0.7, -0.7, 1.4, -1.4]) {
+      const a = base + da + this.drift * 0.2, tx = Math.max(-H, Math.min(H, p.x + Math.sin(a) * 11)), tz = Math.max(-H, Math.min(H, p.z + Math.cos(a) * 11));
+      if (!best) best = { tx, tz };
+      if (!lineOfSight(g.map, from.x, from.z, tx, tz, p.level | 0)) { best = { tx, tz }; break; }
+    }
+    this.goTo(best.tx, best.tz, out, 1, p.level | 0);
+    out.run = false; out.crouch = dist(p.x, p.z, from.x, from.z) < 13;
+    return out;
   }
 
   // What this survivor knows about the monster right now: { x, z, d, sure } or null.
@@ -60,6 +91,10 @@ export class SurvivorBot extends BotBase {
     if (m.disguise == null && this.suspicion >= this.suspectAt && !seen) this.suspicion = this.suspectAt * 0.6; // it unmasked: stay wary
     const memory = 3 + (1 - this.bravery) * 4;
     const threat = this.seenAt && g.time - this.seenAt.t < memory ? this.seenAt : null;
+    const ear = this.hear(m, md);
+    if (ear) this.heardAt = { x: ear.x, z: ear.z, t: g.time };
+    const alert = this.heardAt && g.time - this.heardAt.t < 5 ? this.heardAt : null;
+    const noiseR = (m.monster === 'ravager' ? 45 : 16) + 3; // running inside this range is heard by the monster
 
     // Hidden in a cupboard / porta-potty: wait until the heartbeat has faded for a while.
     if (p.hideIn != null) {
@@ -75,11 +110,12 @@ export class SurvivorBot extends BotBase {
 
     // The heartbeat (terror radius, no direction): the timid crouch and look for cover.
     const heartbeat = md < 32 && m.monster !== 'stalker' && !(m.monster === 'mimic' && m.disguise);
-    if (heartbeat && md < 14 && this.bravery < 0.55 && !p.act) {
-      const spot = this.hideSpot(10, null);
-      if (spot) return this.goHide(spot, out);
-      out.crouch = true;
+    // Close but unseen: never dive into a cupboard or bush in front of it (it would see which one) - keep still-ish,
+    // quiet, and slip away out of its line of sight.
+    if (heartbeat && md < 15 && !threat && this.bravery < 0.9 && !(p.act && p.act !== 'enchant')) {
+      return this.sneakAway(alert || { x: m.x + (g.random() - 0.5) * 8, z: m.z + (g.random() - 0.5) * 8 }, out);
     }
+    if (alert && !threat && md < 22 && this.bravery < 0.95 && !p.act) return this.sneakAway(alert, out);
     // Injured and safe for now: stand still and mend (limited uses).
     if (p.health === 1 && (p.heals > 0 || p.inv.bandage > 0) && !threat && !heartbeat && (!p.act || p.act === 'selfheal')) { out.heal = true; return out; }
     // Flashlight: only when it's really dark and nothing hunts nearby (it gives you away).
@@ -87,6 +123,8 @@ export class SurvivorBot extends BotBase {
     if (wantLight !== !!p.lightOn) this.act({ t: 'light' });
     const r = objective(this, out);
     if (heartbeat && md < 20 && !out.run) out.crouch = out.crouch || this.bravery < 0.8;
+    // noise discipline: sprinting inside the monster's hearing range tells it exactly where you are
+    if (r.run && !threat && md < noiseR && md > 2) { r.run = false; if (md < 12) r.crouch = r.crouch || this.bravery < 0.9; }
     return r;
   }
 
@@ -124,13 +162,16 @@ export class SurvivorBot extends BotBase {
     this.mode = 'flee';
     const d = dist(p.x, p.z, threat.x, threat.z);
     // Out of its sight for now and a hiding place close by: get in.
-    if (!seenNow || !inSight(g, m, p)) {
+    const md = dist(p.x, p.z, m.x, m.z), watched = inSight(g, m, p);
+    // Hiding in a cupboard or a bush only works when it is not watching and not close (it hears a door, and a hunter
+    // that is already nearby simply walks over and checks): otherwise keep running and break the line of sight first.
+    if ((!seenNow || !watched) && !watched && md > 15) {
       const spot = this.hideSpot(d > 9 ? 12 : 6, threat);
-      if (spot && (d > 7 || g.random() < 0.02)) return this.goHide(spot, out);
+      if (spot && (d > 7 || g.random() < 0.02) && dist(m.x, m.z, spot.x, spot.z) > 14) return this.goHide(spot, out);
       // tall grass: slip in and freeze
       const grass = g.map.grass.filter((gr) => dist(gr.x, gr.z, p.x, p.z) < 12 && dist(gr.x, gr.z, threat.x, threat.z) > d)
         .sort((a, b) => dist(a.x, a.z, p.x, p.z) - dist(b.x, b.z, p.x, p.z))[0];
-      if (grass && d > 7 && this.bravery < 0.85 && !(p.level | 0)) {
+      if (grass && d > 14 && md > 14 && this.bravery < 0.85 && !(p.level | 0) && dist(m.x, m.z, grass.x, grass.z) > 14) {
         if (inGrass(g.map, p.x, p.z)) { out.crouch = true; return out; } // freeze
         this.goTo(grass.x, grass.z, out, 1);
         out.crouch = d > 12; out.run = !out.crouch;

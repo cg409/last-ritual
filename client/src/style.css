@@ -32,3 +32,11 @@ input.field:focus { border-color: var(--blood2); }
 .col { display: flex; flex-direction: column; gap: 10px; }
 .foot { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: #4d4540; font-size: 13px; letter-spacing: .2em; }
 .err { color: var(--blood2); min-height: 20px; font-style: italic; }
+
+/* Text / interface size setting (Settings > Interface) */
+#ui .hud, #ui .panel, #ui .lb-side, #ui .lb-drawer { zoom: var(--ui-zoom, 1); }
+#ui .panel .panel, #ui .lb-side .panel, #ui .lb-drawer .panel, #ui .lb-side .lb-drawer, #ui .hud .panel { zoom: 1; }
+
+#netping { position: fixed; right: 8px; bottom: 4px; z-index: 40; font: 11px monospace; opacity: .75; pointer-events: none; text-shadow: 0 0 3px #000; }
+button, .btn, .mm-item, .mm-sbtn, .card, .seat, .item { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.btn:active, .mm-item:active, .mm-sbtn:active { transform: scale(.97); filter: brightness(1.25); }

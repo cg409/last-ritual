@@ -1,0 +1,90 @@
+/* ===== mobile / small-screen layout (phones & tablets in landscape) ===== */
+.rot-global { display: none; position: fixed; inset: 0; z-index: 5000; background: #050303; color: #d8c9a8; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; font-family: 'Cinzel', serif; padding: 24px; }
+.rot-global b { font-size: 22px; letter-spacing: .2em; text-transform: uppercase; } .rot-global span { font: 15px/1.5 'IM Fell English', serif; color: #8f857a; }
+.rot-global .rg-ico { font-size: 70px; line-height: 1; color: #c21d1d; animation: rotphone 2.4s ease-in-out infinite; }
+@keyframes rotphone { 0%, 25% { transform: rotate(0); } 65%, 100% { transform: rotate(-90deg); } }
+@media (orientation: portrait) { html.touch .rot-global { display: flex; } }
+
+.reward-toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 4000; background: linear-gradient(180deg, #2a1c0a, #140c05); border: 1px solid #c8a050; padding: 10px 22px; text-align: center; font-family: 'Cinzel'; color: #f0d890; box-shadow: 0 0 30px rgba(200,160,60,.35); animation: fadeIn .5s; max-width: 90vw; }
+.reward-toast b { display: block; font-size: 18px; letter-spacing: .15em; } .reward-toast span { font: 14px 'IM Fell English'; color: #d8c9a8; }
+
+.inst-panel { width: min(460px, 92vw); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 22px 24px; }
+.inst-icon { width: 76px; height: 76px; border-radius: 18px; box-shadow: 0 0 24px rgba(194,29,29,.45); }
+.inst-size { font-family: 'Cinzel'; letter-spacing: .1em; color: #b08d57; } .inst-size b { color: #f0d890; font-size: 20px; margin-left: 6px; }
+.inst-steps { font-size: 15px; } .inst-msg { min-height: 18px; font-size: 14px; color: #c9a060; }
+.inst-bar { width: 100%; height: 8px; background: #1a1210; border: 1px solid #4a2c2c; } .inst-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #8b0f0f, #c21d1d); transition: width .2s; }
+.inst-btns { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px; }
+/* ---- short screens (a phone held sideways): everything is compact, nothing is cut off, long panels scroll ---- */
+@media (max-height: 560px) {
+  .screen { overflow-y: auto; justify-content: flex-start; padding: 0; -webkit-overflow-scrolling: touch; }
+  .screen > .panel { margin: auto; }
+  .panel { padding: 14px 18px; gap: 8px; max-height: none; }
+  .panel .h2, .h2 { font-size: 21px; margin: 2px 0; letter-spacing: .12em; }
+  .h3 { font-size: 13px; }
+  .btn { padding: 9px 16px; font-size: 15px; letter-spacing: .14em; min-height: 40px; }
+  .btn.small { padding: 7px 12px; font-size: 13px; min-height: 36px; }
+  .field { padding: 9px 11px; font-size: 16px; }
+  .lb-brand { font-size: 10px; }
+  .lore { font-size: 14px; }
+
+  /* main menu */
+  .menuv2 { overflow: hidden; }
+  .mm-left { margin-left: 4vw; width: min(520px, 62vw); justify-content: center; height: 100%; }
+  .mm-pre { font-size: 12px; letter-spacing: .5em; } .mm-main { font-size: clamp(40px, 11vh, 62px); }
+  .mm-orn, .mm-foot, .mm-h, .mm-n { display: none; }
+  .mm-tag { font-size: 13px; margin: 4px 0 8px; }
+  .mm-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+  .mm-item { display: flex; padding: 9px 12px; border: 1px solid #3a2323; background: rgba(20,12,12,.6); border-left: 3px solid #8b0f0f; min-height: 40px; }
+  .mm-item:hover { padding-left: 12px; }
+  .mm-l { font-size: 15px; letter-spacing: .12em; }
+  .mm-name { margin-top: 8px; width: 100%; flex-direction: row; align-items: center; gap: 10px; }
+  .mm-name span { font-size: 9px; letter-spacing: .2em; white-space: nowrap; } .mm-name .field { font-size: 16px; flex: 1; min-width: 0; padding: 4px 2px; }
+  .mm-badge { top: 8px; right: 10px; padding: 6px 10px; gap: 8px; }
+  .mm-badge .bl { width: 38px; height: 38px; } .mm-badge .bl b { font-size: 15px; } .mm-badge .bc div { font-size: 13px; } .mm-badge small { font-size: 10px; }
+  .mm-side { right: 10px; bottom: 10px; flex-direction: column; gap: 6px; align-items: stretch; }
+  .mm-sbtn { padding: 8px 14px 8px 10px; min-height: 38px; } .mm-sbtn .mm-l { font-size: 12px; letter-spacing: .12em; }
+
+  /* sign in / sign up / install / multiplayer / profile / leaderboard / friends / settings panels */
+  .screen .panel { width: min(520px, 94vw); }
+  .mp-panel { width: min(440px, 94vw) !important; }
+  .lbd-panel, .settings, .pf-panel, .fr-panel { width: min(680px, 96vw) !important; max-height: 96vh; }
+  .lbd-list { max-height: 54vh; } .lbd-row { grid-template-columns: 40px 1fr 56px 96px; padding: 5px 8px; }
+  .set-body { max-height: 52vh !important; }
+  .tabs .tab { padding: 8px 10px; font-size: 12px; }
+  .overlay .panel { width: min(360px, 90vw) !important; }
+  .overlay .panel .btn { min-height: 38px; }
+
+  /* lobby */
+  .lb-side { width: min(310px, 40vw); padding: 10px 12px; gap: 6px; overflow-y: auto; }
+  .lb-title { font-size: 18px; } .lb-sub, .lb-brand { display: none; }
+  .lb-seats { gap: 4px; } .seat { padding: 4px 8px; gap: 8px; } .seat .sw { width: 22px; height: 22px; } .seat .nm { font-size: 15px; } .seat .dt { display: none; } .seat .tg { font-size: 9px; padding: 2px 5px; }
+  .lb-chat { min-height: 60px; flex: 1 1 60px; } .lb-log { font-size: 13px; }
+  .lb-actions { position: sticky; bottom: 0; background: linear-gradient(0deg, rgba(5,3,3,.95) 70%, transparent); padding-top: 6px; gap: 6px; }
+  .lb-begin { font-size: 16px; padding: 10px; }
+  .lb-tools { right: 10px; bottom: 10px; } .lb-ghost { padding: 6px 14px 6px 8px; } .lb-ghost svg { width: 28px; height: 28px; }
+  .lb-drawer { width: min(400px, 56vw); padding: 12px 14px; }
+  .lb-plates .plate, .lb-plates > * { transform-origin: top center; }
+}
+@media (max-height: 400px) {
+  .mm-main { font-size: 40px; } .mm-tag { display: none; }
+  .mm-item { min-height: 36px; padding: 7px 10px; } .btn { min-height: 36px; }
+  .mm-name { margin-top: 6px; }
+}
+/* phones: keep text from being tiny */
+html.touch .field, html.touch input { font-size: 16px; }
+
+@media (max-height: 560px) {
+  .panel.prof { width: min(700px, 96vw) !important; max-height: none; }
+  .pf-head { gap: 12px; } .pf-lv { width: 62px; height: 62px; } .pf-lv b { font-size: 24px; } .pf-name { font-size: 20px; }
+  .pf-cur b { font-size: 17px; } .pf-stats { grid-template-columns: repeat(4, 1fr); margin: 8px 0 4px; gap: 5px; }
+  .pf-stats div { padding: 5px 7px; } .pf-stats b { font-size: 16px; } .pf-stats div { font-size: 11px; }
+  .pf-cols { grid-template-columns: 1fr; gap: 10px; } .pf-col .achs { max-height: 240px; }
+  .lb-plates { font-size: 11px; } .lb-plates .plate, .lb-plates > div { padding: 2px 6px; font-size: 12px; }
+}
+@media (max-height: 560px) { .plate { padding: 2px 4px; } .plate .pn { font-size: 11px; letter-spacing: .04em; } .plate .ps { display: none; } .plate .plv { font-size: 9px; padding: 0 3px; } }
+
+/* in-match HUD on phones */
+html.touch .hud .monstername { font-size: 10px; letter-spacing: .08em; max-width: 30vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.touch .hud .tombs { gap: 6px; margin-top: 4px; } html.touch .hud .tomb { width: 22px !important; height: 32px !important; }
+html.touch .hud .minimap { transform: scale(.45); }
+html.touch .hud .banner { font-size: 15px; top: 70px; }

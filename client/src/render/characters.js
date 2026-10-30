@@ -3,7 +3,8 @@
 // (crouch, crawl, downed, carried, hanging, aiming, tripping) are expressed in body space, so they
 // work on any rig orientation (see poses.js).
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { makeGltfLoader, loadRetry, fetchRetry, liteMat } from './assets.js';
+import { graphics } from '../settings.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { applyLook, skinById } from './outfits.js';
 import { SKINS } from '@shared/constants.js';
@@ -36,17 +37,18 @@ function idleClip(walk) {
 
 export async function loadCharacterAssets(onProgress) {
   if (lib.surv_alex) return;
-  const meta = await (await fetch(`${BASE}models/chars/chars.json`)).json();
+  const meta = await (await fetchRetry(`${BASE}models/chars/chars.json`)).json();
   const ids = Object.keys(meta), loaded = {};
-  const loader = new GLTFLoader();
+  const loader = makeGltfLoader();
   const tick = () => onProgress?.(Object.values(loaded).reduce((a, b) => a + b, 0) / ids.length);
   await Promise.all(ids.map(async (id) => {
-    const g = await loader.loadAsync(`${BASE}models/${meta[id].file}`, (e) => { loaded[id] = e.total ? e.loaded / e.total : 0.5; tick(); });
+    const g = await loadRetry(loader, `${BASE}models/${graphics().lite ? meta[id].file.replace('.glb', '_lo.glb') : meta[id].file}`, (e) => { loaded[id] = e.total ? e.loaded / e.total : 0.5; tick(); });
     loaded[id] = 1; tick();
     g.scene.traverse((o) => {
       if (!o.isMesh) return;
       o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
       if (!meta[id].survivor) fixArmWeights(o); // (the new survivor rigs are clean)
+      if (graphics().lite) o.material = liteMat(o.material);
       for (const t of ['map', 'normalMap', 'roughnessMap', 'metalnessMap']) if (o.material[t]) o.material[t].anisotropy = 4;
     });
     const clips = Object.fromEntries(g.animations.map((c) => [c.name, c]));

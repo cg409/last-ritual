@@ -1,13 +1,13 @@
-﻿// Persistent user settings: graphics preset + video, audio, controls (rebindable keys).
+// Persistent user settings: graphics preset + video, audio, controls (rebindable keys).
 const KEY = 'hv-settings-v2';
 
 // ultra: integrated graphics / no graphics card (e.g. i3 4th gen + 8GB RAM) — tiny render size, no
 // shadows, no post-processing, sparse foliage, short view. mobile: phones & tablets.
 // noPost = draw straight to the screen (no bloom / colour grade / AA passes); noMirror = no live reflection.
 export const PRESETS = {
-  ultra:  { label: 'Ultra low', hint: 'No graphics card', pixelRatio: 0.5, shadows: false, shadowRes: 512, bloom: false, antialias: false, foliage: 0.12, drawDist: 45, anisotropy: 1, lights: 2, noPost: true, noMirror: true },
-  mobile: { label: 'Mobile', hint: 'Phones & tablets', pixelRatio: 0.65, shadows: false, shadowRes: 512, bloom: false, antialias: false, foliage: 0.2, drawDist: 55, anisotropy: 1, lights: 3, noPost: true, noMirror: true },
-  low:    { label: 'Low',    pixelRatio: 0.75, shadows: false, shadowRes: 1024, bloom: false, antialias: false, foliage: 0.45, drawDist: 70,  anisotropy: 2, lights: 4 },
+  ultra:  { label: 'Ultra low', hint: 'No graphics card', pixelRatio: 0.5, minRatio: 0.3, shadows: false, shadowRes: 512, bloom: false, antialias: false, foliage: 0.1, drawDist: 38, anisotropy: 1, lights: 1, noPost: true, noMirror: true, lite: true, lod: 'lo', adaptive: true },
+  mobile: { label: 'Mobile', hint: 'Phones & tablets', pixelRatio: 0.6, minRatio: 0.3, shadows: false, shadowRes: 512, bloom: false, antialias: false, foliage: 0.1, drawDist: 40, anisotropy: 1, lights: 1, noPost: true, noMirror: true, lite: true, lod: 'lo', adaptive: true },
+  low:    { label: 'Low',    pixelRatio: 0.75, shadows: false, shadowRes: 1024, bloom: false, antialias: false, foliage: 0.45, drawDist: 70,  anisotropy: 2, lights: 4, lod: 'md', minRatio: 0.5, adaptive: true },
   medium: { label: 'Medium', pixelRatio: 1.0,  shadows: true,  shadowRes: 2048, bloom: true,  antialias: true,  foliage: 0.75, drawDist: 110, anisotropy: 4, lights: 8 },
   high:   { label: 'High',   pixelRatio: 1.5,  shadows: true,  shadowRes: 4096, bloom: true,  antialias: true,  foliage: 1.0,  drawDist: 160, anisotropy: 8, lights: 10 },
 };
@@ -23,10 +23,13 @@ export const ACTIONS = [
 
 const DEFAULTS = {
   preset: 'medium',
+  device: 'auto', // auto | pc | phone  (which controls to use)
   video: { brightness: 1.0, fov: 70, filmGrain: false, vignette: true, motionBlur: false, showFps: false },
   audio: { master: 0.8, music: 0.6, sfx: 0.9 },
   controls: { sensitivity: 1.0, invertY: false, keys: Object.fromEntries(ACTIONS.map(([id, , k]) => [id, k])) },
   hud: { minimap: true, minimapSize: 200 },
+  ui: { fontScale: 1 },                       // text / interface size
+  touch: { scale: 1, opacity: 0.85, pos: {}, size: {} }, // mobile button layout (custom positions / sizes)
 };
 
 function merge(a, b) {
@@ -57,6 +60,10 @@ export function update(patch) {
   localStorage.setItem(KEY, JSON.stringify(current));
   listeners.forEach((fn) => fn(current));
 }
+// replace (not merge) the mobile layout, so a reset can really clear it
+export function setTouch(t) { current.touch = { ...current.touch, ...t }; localStorage.setItem(KEY, JSON.stringify(current)); listeners.forEach((fn) => fn(current)); }
+export function applyUi() { document.documentElement.style.setProperty('--ui-zoom', String(current.ui?.fontScale || 1)); }
+listeners.add(applyUi); applyUi();
 export function resetSettings() { current = merge(DEFAULTS, {}); localStorage.setItem(KEY, JSON.stringify(current)); listeners.forEach((fn) => fn(current)); }
 export const onSettings = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 export const keyName = (code) => (code || '').replace(/^Key/, '').replace(/^Digit/, '').replace('Left', ' L').replace('Right', ' R').replace('Space', 'SPACE');

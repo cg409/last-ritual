@@ -43,7 +43,7 @@ function setRecovery(user) {
   const rk = recoveryKey(); user.rsalt = crypto.randomBytes(16).toString('hex'); user.rhash = hash(rk.replace(/-/g, ''), user.rsalt);
   return rk;
 }
-const out = (user, token, extra = {}) => ({ ok: true, token, username: user.name, profile: user.profile || null, ...extra });
+const out = (user, token, extra = {}) => ({ ok: true, token, username: user.name, profile: user.profile || null, rewards: user.pendingRewards || [], ...extra });
 
 export function register({ username, password }) {
   if (!validName(username)) return { ok: false, error: 'Name: 3–16 letters, numbers or _.' };
@@ -79,6 +79,10 @@ function byToken(req) {
   if (!t) return null;
   return Object.values(db.users).find((u) => (u.tokens || []).includes(t)) || null;
 }
+
+// For the game server (invites, reports): who owns this token, and are two players friends?
+export const byTokenString = (t) => (t ? Object.values(db.users).find((u) => (u.tokens || []).includes(t)) || null : null);
+export const areFriends = (a, b) => !!db.users[key(a)]?.friends?.includes(key(b));
 
 // Express routes (+ permissive CORS for the static client).
 export function mountAccounts(app, origins) {
@@ -118,6 +122,28 @@ export function mountAccounts(app, origins) {
     u.code = typeof b.code === 'string' ? b.code.slice(0, 8) : null;
     lists(u);
     return { ok: true, requests: u.reqIn.length };
+  }));
+  // Closest matches for the "add a friend" box: exact > starts with > contains > a small typo away.
+  const editDist = (a, b) => {
+    const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return dp[a.length][b.length];
+  };
+  app.get('/api/users/search', auth((u, _b, req) => {
+    lists(u);
+    const q = String(req.query.q || '').trim().toLowerCase().slice(0, 16), me = key(u.name);
+    if (!q) return { ok: true, results: [] };
+    const tol = Math.max(1, Math.floor(q.length / 3)), rows = [];
+    for (const [k, f] of Object.entries(db.users)) {
+      if (k === me) continue;
+      const n = k, idx = n.indexOf(q);
+      let score = n === q ? 0 : n.startsWith(q) ? 1 + (n.length - q.length) / 100 : idx > 0 ? 2 + idx / 100 : Infinity;
+      if (score === Infinity) { const d = Math.min(editDist(n.slice(0, q.length + 1), q), editDist(n, q)); if (d <= tol) score = 3 + d; }
+      if (score !== Infinity) rows.push({ score, name: f.name, level: f.profile?.level || 1, status: u.friends.includes(k) ? 'friend' : u.reqOut.includes(k) ? 'pending' : u.reqIn.includes(k) ? 'incoming' : 'none' });
+    }
+    rows.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+    return { ok: true, results: rows.slice(0, 8).map(({ score, ...r }) => r) };
   }));
   app.get('/api/friends', auth((u) => {
     lists(u);
@@ -160,15 +186,49 @@ export function mountAccounts(app, origins) {
     return { ok: true };
   }));
 
-  // XP leaderboard: everyone ranked by total XP ever earned (level progress + current XP).
-  const xpToNext = (L) => Math.round(120 + (L - 1) * 45 + (L - 1) ** 1.6 * 2); // same curve as the client
+  // WEEKLY XP leaderboard: ranked by the XP earned since the last reset. It resets every Monday at 12:30 pm
+  // (server time zone below; default India Standard Time, UTC+5:30 - change with RESET_TZ_OFFSET_MIN).
+  // The player in first place when it resets is paid 10 soul shards + 400 ritual coins.
+  const xpToNext = (L) => Math.round(250 + (L - 1) * 90 + (L - 1) ** 1.9 * 3); // same curve as the client
+  const CURVE = 2; // bump when the curve changes: everybody's weekly baseline is re-taken once so nobody gains / loses weekly XP from it
   const totalXp = (p) => { let t = p?.xp || 0; for (let L = 1; L < (p?.level || 1); L++) t += xpToNext(L); return t; };
+  const TZ = Number(process.env.RESET_TZ_OFFSET_MIN ?? 330), WEEK = 7 * 86400000, PRIZE = { shards: 10, coins: 400 };
+  const weekStartOf = (now) => { // most recent Monday 12:30 in the configured zone, as a real timestamp
+    const local = new Date(now + TZ * 60000);
+    let d = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 12, 30) - ((local.getUTCDay() + 6) % 7) * 86400000;
+    if (d > local.getTime()) d -= WEEK;
+    return d - TZ * 60000;
+  };
+  const weekBoard = () => Object.values(db.users).filter((u) => u.profile)
+    .map((u) => { if (u.curve !== CURVE) { u.curve = CURVE; u.weekBase = totalXp(u.profile); } return u; })
+    .map((u) => ({ name: u.name, level: u.profile.level || 1, xp: Math.max(0, totalXp(u.profile) - (u.weekBase || 0)), total: totalXp(u.profile), matches: u.profile.stats?.matches || 0 }))
+    .sort((a, b) => b.xp - a.xp || a.name.localeCompare(b.name));
+  const rollWeek = () => {
+    const ws = weekStartOf(Date.now());
+    db.meta ||= {};
+    if (db.meta.weekStart == null) { db.meta.weekStart = ws; save(); return; }
+    if (ws <= db.meta.weekStart) return;
+    const win = weekBoard().find((r) => r.xp > 0);
+    if (win) {
+      const u = Object.values(db.users).find((x) => x.name === win.name);
+      u.pendingRewards = [...(u.pendingRewards || []), { ...PRIZE, week: db.meta.weekStart, rank: 1 }];
+      db.meta.lastWinner = { name: win.name, xp: win.xp, week: db.meta.weekStart };
+    }
+    for (const u of Object.values(db.users)) u.weekBase = u.profile ? totalXp(u.profile) : 0;
+    db.meta.weekStart = ws; save();
+  };
+  rollWeek(); setInterval(rollWeek, 30000).unref?.();
   app.get('/api/leaderboard', json((req) => {
+    rollWeek();
     const me = byToken(req);
-    const all = Object.values(db.users).filter((u) => u.profile).map((u) => ({ name: u.name, level: u.profile.level || 1, xp: totalXp(u.profile), matches: u.profile.stats?.matches || 0 }))
-      .sort((a, b) => b.xp - a.xp || a.name.localeCompare(b.name));
-    all.forEach((r, i) => { r.rank = i + 1; });
-    return { ok: true, total: all.length, top: all.slice(0, 50), me: me ? all.find((r) => r.name === me.name) || null : null };
+    const ranked = weekBoard().filter((r) => r.xp > 0); ranked.forEach((r, i) => { r.rank = i + 1; });
+    const mine = me ? ranked.find((r) => r.name === me.name) || { name: me.name, level: me.profile?.level || 1, xp: 0, rank: null } : null;
+    return { ok: true, total: ranked.length, top: ranked.slice(0, 50), me: mine, resetAt: db.meta.weekStart + WEEK, now: Date.now(), prize: PRIZE, lastWinner: db.meta.lastWinner || null };
+  }));
+  app.post('/api/claim', json((req) => {
+    const u = byToken(req); if (!u) return { ok: false, error: 'Please sign in again.' };
+    const rewards = u.pendingRewards || []; u.pendingRewards = []; save();
+    return { ok: true, rewards };
   }));
 
   // How many players earned each achievement (only accounts that have played count).
