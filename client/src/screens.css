@@ -329,3 +329,21 @@
 .rp-done { text-align: center; align-items: center; } .rp-tick { font-size: 54px; color: #5fcf6a; line-height: 1; text-shadow: 0 0 20px rgba(95,207,106,.5); }
 .mm-sbtn.sm { opacity: .85; } .mm-sbtn.sm .mm-l { font-size: 11px; }
 textarea.field { background: #050303; color: #e6dccb; border: 1px solid #4a2c2c; padding: 10px 12px; font-size: 17px; line-height: 1.4; outline: none; width: 100%; box-sizing: border-box; } textarea.field:focus { border-color: #c21d1d; }
+
+/* the small "report" link beside the version number */
+.mm-rep { margin-left: auto; background: none; border: 0; padding: 2px 4px; cursor: pointer; font: 10px 'Cinzel'; letter-spacing: .22em; text-transform: uppercase; color: #5e544a; pointer-events: auto; }
+.mm-rep:hover { color: #b9ab98; text-decoration: underline; }
+.mm-foot span:last-child { margin-left: 12px; }
+.mm-foot { pointer-events: none; }
+
+/* report screen: bright, readable, centred, no fade-in (it must never look dim) */
+.screen.noanim { animation: none; opacity: 1; }
+.rp-panel { align-self: center; background: linear-gradient(180deg, rgba(38,27,27,.98), rgba(20,13,13,.99)); border: 1px solid #6a3a3a; }
+.rp-panel .h2 { color: #fff; } .rp-panel .rp-intro { color: #e0d5c2; font-size: 16px; }
+.rp-panel .field, .rp-panel textarea.field { background: #0e0909; color: #f6ecda; border: 1px solid #7a5050; font-size: 17px; }
+.rp-panel .field::placeholder { color: #b3a594; opacity: 1; } .rp-panel .field:focus { border-color: #e04040; }
+.rp-panel .btn { color: #f2e8d6; } .rp-panel .rp-err { color: #ff8a8a; }
+.rp-done .lore { color: #e0d5c2; font-size: 17px; }
+
+/* panels sit above the dark left-hand fade of the menu backdrop (it was dimming the text on their left side) */
+.menuv2 > .panel { position: relative; z-index: 3; }

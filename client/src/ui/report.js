@@ -23,7 +23,7 @@ export function reportScreen({ onBack }) {
   const draw = () => {
     const email = q('#rp-mail')?.value ?? '', msg = q('#rp-msg')?.value ?? '';
     show(`
-      <div class="screen menuv2"><div class="mm-fade"></div>
+      <div class="screen menuv2 noanim"><div class="mm-fade"></div>
         <div class="panel rp-panel">
           <div class="pf-bar"><button class="btn small" id="rp-back">&larr; Back</button><div class="h2" style="margin:0">Report / Feedback</div><span></span></div>
           <div class="lore rp-intro">Found a bug, or have an idea or an opinion? Tell the developers. We read everything and reply to your Gmail.</div>
@@ -62,7 +62,7 @@ export function reportScreen({ onBack }) {
   };
   const thanks = () => {
     show(`
-      <div class="screen menuv2"><div class="mm-fade"></div>
+      <div class="screen menuv2 noanim"><div class="mm-fade"></div>
         <div class="panel rp-panel rp-done">
           <div class="rp-tick">&#10003;</div>
           <div class="h2">Report sent</div>

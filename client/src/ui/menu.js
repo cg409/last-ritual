@@ -10,7 +10,7 @@ export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLo
     ['lo', 'Loadout', 'Character · monster · perks · traps'],
     ['how', 'The Rites', 'How the ritual is performed'], ['set', 'Settings', 'Video · audio · controls']];
   // social corner (bottom right)
-  const side = [['fr', 'Friends', '☩'], ['prof', 'Profile', '✠'], ['rep', 'Report', '!'], ['lbd', 'Leaderboard', '♛']];
+  const side = [['fr', 'Friends', '☩'], ['prof', 'Profile', '✠'], ['lbd', 'Leaderboard', '♛']];
   show(`
     <div class="screen menuv2">
       <div class="mm-fade"></div>
@@ -25,8 +25,8 @@ export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLo
       </div>
       ${profile ? `<button class="mm-badge" id="mm-badge" title="Open your profile"><div class="bl"><span>LEVEL</span><b>${profile.level}</b></div>
         <div class="bc"><div>${esc(name)}</div><small>${profile.account ? 'Account' : 'Guest'}</small><small>◉ ${profile.coins} · ◆ ${profile.shards}</small></div></button>` : ''}
-      <nav class="mm-side">${side.map(([id, label, ic]) => `<button class="mm-sbtn ${id === 'rep' ? 'sm' : ''}" id="${id}"><b>${ic}</b><span class="mm-l">${label}${id === 'fr' && requests ? `<i class="mm-badge-n">${requests}</i>` : ''}</span></button>`).join('')}</nav>
-      <div class="mm-foot"><span>WASD · SHIFT · E · SPACE</span><span>Headphones recommended</span><span>v1.0</span></div>
+      <nav class="mm-side">${side.map(([id, label, ic]) => `<button class="mm-sbtn" id="${id}"><b>${ic}</b><span class="mm-l">${label}${id === 'fr' && requests ? `<i class="mm-badge-n">${requests}</i>` : ''}</span></button>`).join('')}</nav>
+      <div class="mm-foot"><span>WASD · SHIFT · E · SPACE</span><span>Headphones recommended</span><button class="mm-rep" id="rep" title="Send a bug report or feedback to the developers">report</button><span>v1.0</span></div>
     </div>`);
   q('#nm').addEventListener('input', (e) => onName(e.target.value));
   document.querySelectorAll('.mm-item, .mm-sbtn').forEach((b) => { b.addEventListener('mouseenter', () => sfx.hover()); b.addEventListener('click', () => sfx.click()); });

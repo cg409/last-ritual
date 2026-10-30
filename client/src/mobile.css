@@ -31,7 +31,8 @@
   .menuv2 { overflow: hidden; }
   .mm-left { margin-left: 4vw; width: min(520px, 62vw); justify-content: center; height: 100%; }
   .mm-pre { font-size: 12px; letter-spacing: .5em; } .mm-main { font-size: clamp(40px, 11vh, 62px); }
-  .mm-orn, .mm-foot, .mm-h, .mm-n { display: none; }
+  .mm-orn, .mm-h, .mm-n { display: none; }
+  .mm-foot { bottom: 3px; left: auto; right: 10px; gap: 10px; } .mm-foot > span:not(:last-child) { display: none; }
   .mm-tag { font-size: 13px; margin: 4px 0 8px; }
   .mm-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
   .mm-item { display: flex; padding: 9px 12px; border: 1px solid #3a2323; background: rgba(20,12,12,.6); border-left: 3px solid #8b0f0f; min-height: 40px; }
@@ -41,7 +42,7 @@
   .mm-name span { font-size: 9px; letter-spacing: .2em; white-space: nowrap; } .mm-name .field { font-size: 16px; flex: 1; min-width: 0; padding: 4px 2px; }
   .mm-badge { top: 8px; right: 10px; padding: 6px 10px; gap: 8px; }
   .mm-badge .bl { width: 38px; height: 38px; } .mm-badge .bl b { font-size: 15px; } .mm-badge .bc div { font-size: 13px; } .mm-badge small { font-size: 10px; }
-  .mm-side { right: 10px; bottom: 10px; flex-direction: column; gap: 6px; align-items: stretch; }
+  .mm-side { right: 10px; bottom: 24px; flex-direction: column; gap: 6px; align-items: stretch; }
   .mm-sbtn { padding: 8px 14px 8px 10px; min-height: 38px; } .mm-sbtn .mm-l { font-size: 12px; letter-spacing: .12em; }
 
   /* sign in / sign up / install / multiplayer / profile / leaderboard / friends / settings panels */
