@@ -50,7 +50,9 @@ export function scatterClutter(map, rng, place, free, occupied, H) {
     const [kind, r, h] = rng.pick(smalls);
     const s = kind === 'wooden_crate_01' ? 1.6 : 1;
     map.props.push({ x: p.x, z: p.z, rot: rng.range(0, 6.28), s, kind });
-    map.circles.push({ x: p.x, z: p.z, r: r * s, h: h * s, type: kind === 'gothic_statue' ? 'pillar' : 'prop' });
+    // Stumps: only the trunk blocks — you can walk over the little roots spreading round it. Old
+    // tyres lie flat and are simply walked over.
+    if (kind !== 'old_tyre') map.circles.push({ x: p.x, z: p.z, r: (kind === 'tree_stump_01' ? 0.3 : r) * s, h: h * s, type: kind === 'gothic_statue' ? 'pillar' : 'prop' });
     if (kind === 'Barrel_01' && rng() < 0.6) { // barrel cluster
       for (let k = 0; k < 2; k++) {
         const a = rng.range(0, 6.28), x = p.x + Math.cos(a) * 0.7, z = p.z + Math.sin(a) * 0.7;
@@ -58,22 +60,38 @@ export function scatterClutter(map, rng, place, free, occupied, H) {
       }
     }
   }
+  // (No logs lie around from the start: logs only come down when a survivor pushes one — landmarks.js.)
+  map.logs ||= [];
   void free; void occupied; void H;
 }
 
 // Dense dead forest, camouflage grass and non-blocking undergrowth.
 export function scatterNature(map, rng, free, occupied, H) {
+  // Tall grass first (it doesn't block, so it only needs the patch centre clear of structures);
+  // trees may then grow inside the patches, like a real overgrown field.
+  for (let i = 0; i < 600 && map.grass.length < 46; i++) {
+    const x = rng.range(-H + 6, H - 6), z = rng.range(-H + 6, H - 6);
+    if (!free(x, z, 1.2)) continue;
+    if (map.grass.some((g) => Math.hypot(g.x - x, g.z - z) < g.r + 2)) continue;
+    map.grass.push({ x, z, r: rng.range(3, 6) });
+  }
+  // Groves: a ring of thick old trees around a clearing — a loop to run the monster around.
+  for (let i = 0, groves = 0; i < 300 && groves < 12; i++) {
+    const cx = rng.range(-H + 10, H - 10), cz = rng.range(-H + 10, H - 10);
+    if (!free(cx, cz, 5)) continue;
+    occupied.push({ x: cx, z: cz, r: 5 }); groves++;
+    const n = rng.int(5, 7), R = rng.range(2.6, 3.4), a0 = rng.range(0, 6.28);
+    for (let k = 0; k < n; k++) {
+      const a = a0 + (k / n) * Math.PI * 2 + rng.range(-0.25, 0.25);
+      map.circles.push({ x: cx + Math.cos(a) * R, z: cz + Math.sin(a) * R, r: rng.range(0.5, 0.75), h: rng.range(11, 16), type: 'tree', v: rng.int(0, 5) });
+    }
+  }
   let trees = 0;
   for (let i = 0; i < 1500 && trees < 260; i++) {
     const x = rng.range(-H + 1.5, H - 1.5), z = rng.range(-H + 1.5, H - 1.5);
     if (!free(x, z, 0.7)) continue;
     occupied.push({ x, z, r: 0.8 }); trees++;
     map.circles.push({ x, z, r: rng.range(0.28, 0.55), h: rng.range(8, 15), type: 'tree', v: rng.int(0, 5) });
-  }
-  for (let i = 0; i < 80 && map.grass.length < 36; i++) {
-    const x = rng.range(-H + 6, H - 6), z = rng.range(-H + 6, H - 6);
-    if (!free(x, z, 2.5)) continue;
-    map.grass.push({ x, z, r: rng.range(3, 6) });
   }
   const deco = ['shrub_01', 'shrub_04', 'fern_02', 'fern_02', 'nettle_plant', 'weed_plant_02', 'dry_branches_medium_01', 'grass_medium_02', 'grass_medium_01'];
   for (let i = 0; i < 420; i++) {

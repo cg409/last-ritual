@@ -1,0 +1,150 @@
+{
+ "mimic": {
+  "file": "chars/mimic.glb",
+  "height": 1.725,
+  "hipY": 0.895,
+  "speeds": {
+   "Run": 2.517,
+   "Walk": 0.887
+  },
+  "reverse": []
+ },
+ "puppeteer": {
+  "file": "chars/puppeteer.glb",
+  "height": 1.837,
+  "hipY": 1.008,
+  "speeds": {
+   "Run": 2.836,
+   "Walk": 1
+  },
+  "reverse": []
+ },
+ "ravager": {
+  "file": "chars/ravager.glb",
+  "height": 1.805,
+  "hipY": 0.909,
+  "speeds": {
+   "Run": 3.334,
+   "Walk": 0.875
+  },
+  "reverse": []
+ },
+ "stalker": {
+  "file": "chars/stalker.glb",
+  "height": 1.713,
+  "hipY": 0.951,
+  "speeds": {
+   "Run": 2.658,
+   "Walk": 1.592
+  },
+  "reverse": []
+ },
+ "wanderer": {
+  "file": "chars/wanderer.glb",
+  "height": 1.732,
+  "hipY": 0.924,
+  "speeds": {
+   "Run": 2.157,
+   "Walk": 0.852
+  },
+  "reverse": [
+   "Walk"
+  ]
+ },
+ "surv_alex": {
+  "file": "chars/surv-alex.glb",
+  "height": 1.696,
+  "hipY": 0.986,
+  "speeds": {
+   "Jump": 2.536,
+   "Walk": 1.681,
+   "Run": 2.806
+  },
+  "reverse": [],
+  "survivor": true
+ },
+ "surv_agent": {
+  "file": "chars/surv-agent.glb",
+  "height": 1.71,
+  "hipY": 1.01,
+  "speeds": {
+   "Jump": 2.578,
+   "Walk": 1.708,
+   "Run": 2.853
+  },
+  "reverse": [],
+  "survivor": true
+ },
+ "surv_gamer": {
+  "file": "chars/surv-gamer.glb",
+  "height": 1.713,
+  "hipY": 1.014,
+  "speeds": {
+   "Run": 2.868,
+   "Jump": 2.592,
+   "Walk": 1.718
+  },
+  "reverse": [],
+  "survivor": true
+ },
+ "surv_gwenra": {
+  "file": "chars/surv-gwenra.glb",
+  "height": 1.832,
+  "hipY": 1.11,
+  "speeds": {
+   "Walk": 1.099,
+   "Run": 3.117,
+   "Jump": 2.816
+  },
+  "reverse": [],
+  "survivor": true
+ },
+ "surv_knight": {
+  "file": "chars/surv-knight.glb",
+  "height": 1.713,
+  "hipY": 1.025,
+  "speeds": {
+   "Run": 2.908,
+   "Walk": 1.741,
+   "Jump": 2.627
+  },
+  "reverse": [],
+  "survivor": true
+ },
+ "surv_sheep": {
+  "file": "chars/surv-sheep.glb",
+  "height": 1.721,
+  "hipY": 0.93,
+  "speeds": {
+   "Walk": 1.573,
+   "Jump": 2.373,
+   "Run": 2.627
+  },
+  "reverse": [],
+  "survivor": true
+ },
+ "surv_wolf": {
+  "file": "chars/surv-wolf.glb",
+  "height": 1.843,
+  "hipY": 1.017,
+  "speeds": {
+   "Jump": 2.593,
+   "Walk": 1.718,
+   "Run": 2.869
+  },
+  "reverse": [],
+  "survivor": true
+ },
+ "surv_yuna": {
+  "file": "chars/surv-yuna.glb",
+  "height": 1.745,
+  "hipY": 1.048,
+  "speeds": {
+   "Walk": 1.041,
+   "Jump": 2.668,
+   "Run": 2.953
+  },
+  "reverse": [],
+  "survivor": true
+ }
+}

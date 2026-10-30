@@ -1,6 +1,6 @@
 // Lobby management: up to 5 players, empty seats are filled with bots when the match starts.
 import { Game } from '../shared/game.js';
-import { MAX_PLAYERS, SKINS, BOT_NAMES, MONSTER_IDS, TRAPS, TICK_RATE } from '../shared/constants.js';
+import { MAX_PLAYERS, SKINS, BOT_NAMES, MONSTER_IDS, TRAPS, TICK_RATE, PERKS, MAX_PERKS } from '../shared/constants.js';
 
 const SNAP_EVERY = 1; // send a snapshot every tick (20 Hz)
 const code = () => Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -42,6 +42,7 @@ export class LobbyManager {
     this.bySocket.set(socket.id, lobby.code);
     socket.join(lobby.code);
     this.broadcast(lobby);
+    socket.to(lobby.code).emit('lobby:chat', { sys: true, text: `${clean(name) || 'Survivor'} stepped into the circle.` });
     return { ok: true, code: lobby.code, you: socket.id };
   }
 
@@ -50,7 +51,9 @@ export class LobbyManager {
     this.bySocket.delete(socket.id);
     socket.leave(c);
     const lobby = this.lobbies.get(c); if (!lobby) return;
+    const gone = lobby.members.find((m) => m.id === socket.id);
     lobby.members = lobby.members.filter((m) => m.id !== socket.id);
+    if (gone && !lobby.game) this.io.to(c).emit('lobby:chat', { sys: true, text: `${gone.name} left the circle.` });
     if (lobby.game) lobby.game.removePlayer(socket.id);
     if (!lobby.members.length) { clearInterval(lobby.timer); this.lobbies.delete(c); return; }
     if (lobby.host === socket.id) lobby.host = lobby.members[0].id;
@@ -63,6 +66,9 @@ export class LobbyManager {
     if (data.skin && SKINS.some((s) => s.id === data.skin) && !lobby.members.some((m) => m !== me && m.skin === data.skin)) me.skin = data.skin;
     if (data.monsterPref && MONSTER_IDS.includes(data.monsterPref)) me.monsterPref = data.monsterPref;
     if (data.trap && TRAPS[data.trap]) me.trap = data.trap;
+    if (data.trapLvl) me.trapLvl = Math.max(1, Math.min(3, data.trapLvl | 0));
+    if (Array.isArray(data.perks)) me.perks = data.perks.filter((p) => PERKS[p?.id]).slice(0, MAX_PERKS).map((p) => ({ id: p.id, lvl: Math.max(1, Math.min(3, p.lvl | 0 || 1)) }));
+    if (data.level) me.level = Math.max(1, Math.min(100, data.level | 0));
     if (data.name) me.name = clean(data.name) || me.name;
     this.broadcast(lobby);
   }
@@ -88,7 +94,7 @@ export class LobbyManager {
     const usedNames = new Set(roster.map((r) => r.name));
     const botNames = BOT_NAMES.filter((n) => !usedNames.has(n));
     for (let i = roster.length; i < MAX_PLAYERS; i++) {
-      roster.push({ id: `bot${i}`, name: botNames[i] + ' [BOT]', isBot: true, monsterPref: MONSTER_IDS[Math.floor(Math.random() * MONSTER_IDS.length)], trap: Object.keys(TRAPS)[i % 3] });
+      roster.push({ id: `bot${i}`, name: botNames[i], isBot: true, monsterPref: MONSTER_IDS[Math.floor(Math.random() * MONSTER_IDS.length)], trap: Object.keys(TRAPS)[i % Object.keys(TRAPS).length] });
     }
     const game = new Game({ roster });
     lobby.game = game;
@@ -110,7 +116,7 @@ export class LobbyManager {
     const num = (v) => (Number.isFinite(v) ? Math.max(-1, Math.min(1, v)) : 0);
     lobby.game.setInput(socket.id, {
       mx: num(inp.mx), mz: num(inp.mz), run: !!inp.run, crouch: !!inp.crouch, crawl: !!inp.crawl,
-      interact: !!inp.interact, aim: !!inp.aim, face: Number.isFinite(inp.face) ? inp.face : undefined,
+      interact: !!inp.interact, heal: !!inp.heal, aim: !!inp.aim, face: Number.isFinite(inp.face) ? inp.face : undefined,
       actions: Array.isArray(inp.actions) ? inp.actions.slice(0, 8) : [],
     });
   }
@@ -119,7 +125,7 @@ export class LobbyManager {
   broadcast(lobby) {
     this.io.to(lobby.code).emit('lobby:state', {
       code: lobby.code, name: lobby.name, host: lobby.host, inGame: !!lobby.game,
-      members: lobby.members.map(({ id, name, ready, skin, monsterPref, trap }) => ({ id, name, ready, skin, monsterPref, trap })),
+      members: lobby.members.map(({ id, name, ready, skin, monsterPref, trap, perks, level }) => ({ id, name, ready, skin, monsterPref, trap, perks, level })),
     });
   }
 }

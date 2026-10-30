@@ -1,11 +1,11 @@
 // Monster definitions — abilities, weaknesses, counterplay and lore.
 export const MONSTERS = {
   mimic: {
-    id: 'mimic', name: 'THE MIMIC', color: 0x2a2a2a, weapon: 'lantern', specialCd: 20,
-    special: 'Disguise [Q]: take the outfit of a survivor. While disguised it cannot kill, but can set traps, break enchantments and carry the fallen.',
-    passive: 'In demon form it strikes with the lantern in its hand.',
-    weakness: 'Candles and lit areas expose it and hurl it a random distance across the map. It casts no shadow.',
-    counter: 'Place candles (limited, long burn). A candle beside an enchanted tomb makes it unbreakable. Light and snuff them as needed.',
+    id: 'mimic', name: 'THE MIMIC', color: 0x2a2a2a, weapon: 'rake', specialCd: 20,
+    special: 'Disguise [Q]: become one of the players in this match — their look, their walk. Press Q again to drop it and strike as the monster. While disguised she cannot kill, but can set traps, break enchantments and carry the fallen. [V] toggles a third-person view while disguised.',
+    passive: 'In demon form she strikes with a rusted rake. She casts no shadow.',
+    weakness: 'The slowest of the monsters — she must get close by deceit.',
+    counter: 'Watch how your "friends" behave: do they work on the tombs? Do they stay close for no reason? Do they cast a shadow?',
     lore: 'Tobiah Wren was a travelling actor who stole the faces of the dead for his stage. One night the faces stole him back. Now he wears whoever you trust most, and his lantern burns with the last breath of his own name.',
   },
   wanderer: {
@@ -17,10 +17,10 @@ export const MONSTERS = {
     lore: 'A shepherd who fed his flock to the crows during the long famine so that he might live. The crows remembered. They gave him their eyes, and took his rest.',
   },
   puppeteer: {
-    id: 'puppeteer', name: 'THE PUPPETEER', color: 0x3a1f2a, weapon: 'string', specialCd: 60,
+    id: 'puppeteer', name: 'THE PUPPETEER', color: 0x3a1f2a, weapon: 'halberd', specialCd: 60,
     special: 'Blackout [Q]: every light in the realm dies, only faint moonlight remains for 10s. The Puppeteer sees clearly.',
-    passive: 'Lashes a puppet string [RMB] (short range) that pulls the survivor in.',
-    weakness: 'Blackout is short with a long cooldown. The string cannot reach far.',
+    passive: 'Strikes with a halberd. Lashes puppet strings [hold RMB to aim, release] again and again — they pull the survivor in.',
+    weakness: 'Slower than a running survivor. Blackout is short with a long cooldown. The string cannot reach far.',
     counter: 'During Blackout stay still or crawl into tall grass. The Puppeteer barely sees motionless survivors.',
     lore: 'Madame Liesl carved marionettes from the coffin wood of children no one came to bury. When the village burned her workshop, the strings found her wrists instead.',
   },
@@ -36,8 +36,8 @@ export const MONSTERS = {
     id: 'stalker', name: 'THE STALKER', color: 0x1f2a33, weapon: 'trident', specialCd: 18,
     special: 'Tidecaller [Hold RMB, release]: throws a returning trident with long range. Aiming calls lightning from the aimed direction, visible to all.',
     passive: 'Completely silent. Survivors only notice it by their own shadow flickering and the world turning wrong. Can impale and carry.',
-    weakness: 'The trident has a cooldown. Lightning betrays every aim.',
-    counter: 'Hold a candle and watch your shadow. Candles burn twice as long against the Stalker.',
+    weakness: 'A little slower than the others. The trident has a cooldown. Lightning betrays every aim.',
+    counter: 'Switch your flashlight on and watch your shadow.',
     lore: 'A drowned fisherman who swore to the sea he would bring back every soul it lost. The sea took him at his word. He walks out of the fog without a sound, still dripping, still counting.',
   },
 };

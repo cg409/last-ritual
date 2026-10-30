@@ -12,9 +12,9 @@ export function buildLamps(scene, map) {
     const lamp = cloneModel('street_lamp_01'); g.add(lamp);
     const glass = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffd9a0, emissive: 0xffa040, emissiveIntensity: 1.2 }));
     glass.position.set(0, 3.55, 0.12); g.add(glass);
-    const light = vlight(0xffb070, 2.2, l.r * 1.5, 2); light.position.set(0, 3.4, 0.2); light.flicker = 0.15; g.add(light);
+    const light = vlight(0xffb070, 1.3, l.r * 1.3, 2); light.position.set(0, 3.4, 0.2); light.flicker = 0.2; g.add(light);
     scene.add(g);
-    return { g, light, glass, base: 2.2 };
+    return { g, light, glass, base: 1.3 };
   });
 }
 

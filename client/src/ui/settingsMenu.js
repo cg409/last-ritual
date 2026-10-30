@@ -14,8 +14,8 @@ export function settingsPanel(container, onBack) {
   const tabs = { graphics: 'Graphics', video: 'Video', audio: 'Audio', controls: 'Controls', interface: 'Interface' };
   let body = '';
   if (tab === 'graphics') {
-    body = `<div class="grid" style="grid-template-columns:repeat(3,1fr)">${Object.entries(PRESETS).map(([id, p]) =>
-      `<div class="card ${s.preset === id ? 'sel' : ''}" data-preset="${id}"><div style="font-family:Cinzel;font-size:18px">${p.label}</div>
+    body = `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${Object.entries(PRESETS).map(([id, p]) =>
+      `<div class="card ${s.preset === id ? 'sel' : ''}" data-preset="${id}"><div style="font-family:Cinzel;font-size:18px">${p.label}</div>${p.hint ? `<div class="lore" style="font-size:12px;color:#c9a060">${p.hint}</div>` : ''}
        <div class="lore" style="font-size:12px">${Math.round(p.pixelRatio * 100)}% res · ${p.shadows ? p.shadowRes + ' shadows' : 'no shadows'} · ${p.bloom ? 'bloom' : 'no bloom'} · ${p.antialias ? 'AA' : 'no AA'} · foliage ${Math.round(p.foliage * 100)}%</div></div>`).join('')}</div>
       <div class="lore" style="margin-top:10px;font-size:13px">Foliage density applies when the next match starts.</div>`;
   } else if (tab === 'video') {

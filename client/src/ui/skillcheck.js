@@ -27,8 +27,15 @@ export class SkillCheck {
         ctx.strokeStyle = '#c21d1d'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(c + Math.cos(a) * (R - 22), c + Math.sin(a) * (R - 22)); ctx.lineTo(c + Math.cos(a) * (R + 16), c + Math.sin(a) * (R + 16)); ctx.stroke();
       }
-      ctx.fillStyle = 'rgba(230,220,200,.9)'; ctx.font = '600 22px Cinzel, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('SPACE', c, c);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (n < 0) { // get-ready beat: pulsing "!" before the needle starts
+        ctx.fillStyle = `rgba(255,220,160,${0.6 + Math.sin(gameTime * 18) * 0.4})`; ctx.font = '700 46px Cinzel, serif';
+        ctx.fillText('!', c, c - 14);
+        ctx.fillStyle = 'rgba(230,220,200,.9)'; ctx.font = '600 18px Cinzel, serif'; ctx.fillText('GET READY', c, c + 24);
+      } else {
+        ctx.fillStyle = 'rgba(230,220,200,.9)'; ctx.font = '600 22px Cinzel, serif';
+        ctx.fillText('SPACE', c, c);
+      }
     } else this.cur = null;
     if (this.flash > 0) {
       this.flash -= dt;
@@ -44,9 +51,11 @@ export class SkillCheck {
     const n = this.needle(sk, gameTime);
     if (n < 0) return null; // not started yet
     this.answered.add(sk.id);
+    // A little forgiveness for input / frame latency (~60ms either side at the usual needle speed).
+    const tol = 0.035;
     let result = 'miss';
-    if (n >= sk.zoneStart && n <= sk.zoneStart + sk.great) result = 'great';
-    else if (n >= sk.zoneStart && n <= sk.zoneStart + sk.zoneLen) result = 'good';
+    if (n >= sk.zoneStart - tol && n <= sk.zoneStart + sk.great + tol * 0.5) result = 'great';
+    else if (n >= sk.zoneStart - tol && n <= sk.zoneStart + sk.zoneLen + tol) result = 'good';
     this.flash = 0.8; this.flashText = result.toUpperCase(); this.flashColor = result === 'miss' ? '#c21d1d' : '#fff';
     if (result === 'great') sfx.skillGreat(); else if (result === 'good') sfx.skillGood();
     return { t: 'skill', id: sk.id, result };

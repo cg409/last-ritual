@@ -2,7 +2,7 @@
 # The server imports ../shared, so the whole repo is deployed and the server is started from /server.
 services:
   - type: web
-    name: hollow-vigil-server
+    name: last-ritual-server
     runtime: node
     plan: free
     rootDir: .

@@ -3,6 +3,7 @@ import { settings, onSettings } from './settings.js';
 let ctx = null, master = null, sfxBus = null, musicBus = null, amb = null;
 export const now = () => ctx.currentTime;
 export const getCtx = () => ctx;
+export const buses = () => ({ sfx: sfxBus, music: musicBus });
 
 export function initAudio() {
   if (ctx) { ctx.resume(); return; }
@@ -11,6 +12,7 @@ export function initAudio() {
   sfxBus = ctx.createGain(); sfxBus.connect(master);
   musicBus = ctx.createGain(); musicBus.connect(master);
   applyVolumes(); onSettings(applyVolumes);
+  loadSounds();
 }
 function applyVolumes() {
   if (!ctx) return;
@@ -45,33 +47,44 @@ export function noise(dur, filterF, vol = 0.3, pan = 0, type = 'bandpass', q = 1
   s.connect(f).connect(g); s.start();
 }
 
+
+// Background: in the menus / lobby the "menu and lobby" track; in a match a low, quiet drone
+// (the wind, the mansion, the monsters... are real recordings — see soundscape.js).
 export function startAmbience(level = 1) {
   if (!ctx || amb) return;
-  amb = { g: ctx.createGain(), nodes: [] }; amb.g.gain.value = 0; amb.g.connect(musicBus);
-  amb.g.gain.linearRampToValueAtTime(0.35 * level, now() + 3);
-  for (const f of [43.65, 44.1, 65.4, 97.9]) {
+  amb = { g: ctx.createGain(), nodes: [], music: null }; amb.g.gain.value = 0; amb.g.connect(musicBus);
+  if (level < 1) { // menus & lobby
+    amb.g.gain.linearRampToValueAtTime(1, now() + 2);
+    amb.music = loopClip('menu', { vol: 0.55, music: true, fadeIn: 2.5 });
+    return;
+  }
+  amb.g.gain.linearRampToValueAtTime(0.22, now() + 3);
+  for (const f of [43.65, 44.1, 65.4]) {
     const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 160;
     const g = ctx.createGain(); g.gain.value = 0.08; o.connect(lp).connect(g).connect(amb.g); o.start(); amb.nodes.push(o);
   }
-  const w = ctx.createBufferSource(); w.buffer = noiseBuffer(4); w.loop = true;
-  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 400; bp.Q.value = 0.6;
-  const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
-  const lg = ctx.createGain(); lg.gain.value = 250; lfo.connect(lg).connect(bp.frequency); lfo.start();
-  const wg = ctx.createGain(); wg.gain.value = 0.25; w.connect(bp).connect(wg).connect(amb.g); w.start(); amb.nodes.push(w, lfo);
 }
 export function stopAmbience() {
   if (!amb) return;
   const a = amb; amb = null;
   a.g.gain.linearRampToValueAtTime(0, now() + 1.5);
+  a.music?.stop(1.5);
   setTimeout(() => a.nodes.forEach((n) => { try { n.stop(); } catch { /* already stopped */ } }), 1700);
 }
 
-let hbNext = 0;
+// Terror-radius heartbeat (the "heart beat" recording, looped): silent far away, then louder and
+// faster the closer the monster gets. Call every frame with 0..1.
+let hb = null;
 export function heartbeat(intensity) {
-  if (!ctx || intensity <= 0.02 || now() < hbNext) return;
-  const v = 0.25 + intensity * 0.6;
-  tone(55, 0.18, 'sine', v); setTimeout(() => tone(48, 0.2, 'sine', v * 0.8), 160);
-  hbNext = now() + (1.3 - intensity * 0.75);
+  if (!ctx) return;
+  if (intensity < 0) { hb?.stop(0.6); hb = null; return; } // match over
+  if (!hb && intensity > 0.02) hb = loopClip('heartbeat', { vol: 0 });
+  if (!hb) return;
+  const k = Math.max(0, intensity);
+  // clearly there from the edge of the terror radius, pounding when it is on top of you
+  hb.set(k <= 0.02 ? 0 : 0.5 + Math.pow(k, 0.7) * 1.1, 0.8 + k * 0.85);
+  if (k <= 0.02 && hb.idle()) { hb.stop(0.5); hb = null; }
 }
 export { sfx } from './sfx.js';
+import { loadSounds, loopClip } from './sounds.js';

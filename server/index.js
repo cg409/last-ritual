@@ -1,15 +1,18 @@
-// HOLLOW VIGIL — multiplayer server (deploy on Render). Socket.IO lobbies + authoritative simulation.
+// THE LAST RITUAL — multiplayer server (deploy on Render). Socket.IO lobbies + authoritative simulation.
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { LobbyManager } from './lobby.js';
+import { mountAccounts } from './accounts.js';
 
 const PORT = process.env.PORT || 3000;
 // Comma-separated list of allowed frontends, e.g. "https://hollow-vigil.netlify.app". "*" allows all.
 const ORIGINS = (process.env.CLIENT_ORIGIN || '*').split(',').map((s) => s.trim());
 
 const app = express();
-app.get('/', (_req, res) => res.type('text').send('Hollow Vigil server is running.'));
+app.use(express.json({ limit: '64kb' }));
+mountAccounts(app, ORIGINS);
+app.get('/', (_req, res) => res.type('text').send('The Last Ritual server is running.'));
 app.get('/health', (_req, res) => res.json({ ok: true, lobbies: lobbies.count(), uptime: process.uptime() }));
 
 const http = createServer(app);
@@ -34,4 +37,4 @@ io.on('connection', (socket) => {
   socket.on('disconnect', safe(() => lobbies.leave(socket)));
 });
 
-http.listen(PORT, () => console.log(`Hollow Vigil server listening on :${PORT}`));
+http.listen(PORT, () => console.log(`The Last Ritual server listening on :${PORT}`));

@@ -5,7 +5,9 @@ import { io } from 'socket.io-client';
 import { Game } from '@shared/game.js';
 import { TICK_RATE } from '@shared/constants.js';
 
-export const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+// The server address: edit dist/config.js after building (no rebuild needed), or set VITE_SERVER_URL at build time.
+const cfg = typeof window !== 'undefined' && window.TLR_SERVER_URL && !/PASTE/.test(window.TLR_SERVER_URL) ? window.TLR_SERVER_URL.replace(/\/+$/, '') : '';
+export const SERVER_URL = cfg || import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 
 export class LocalSession {
   constructor(roster, myId) {
@@ -14,6 +16,7 @@ export class LocalSession {
     const as = new URLSearchParams(location.search).get('as');
     const forceMonster = as === 'monster' ? myId : as === 'survivor' ? roster.find((r) => r.id !== myId)?.id : null;
     this.game = new Game({ roster, forceMonster });
+    this.game.botChat = false; // singleplayer: the bots stay silent during the match
     // Debug: ?dead=1 starts you as a mouse (to test the after-death mode).
     if (new URLSearchParams(location.search).has('dead')) { const me = this.game.player(myId); if (me && me.role === 'survivor') me.state = 'mouse'; }
     this.seed = this.game.seed;
@@ -31,6 +34,7 @@ export class LocalSession {
     }, 1000 / TICK_RATE / 2);
   }
   sendInput(inp) { this.game.setInput(this.myId, inp); }
+  sendChat(text, name) { this.game.emit({ t: 'chat', name, text: String(text).slice(0, 140) }); }
   stop() { clearInterval(this.timer); }
 }
 
@@ -64,5 +68,6 @@ export class NetSession {
   }
   start() {}
   sendInput(inp) { this.net.emit('input', inp); }
+  sendChat(text) { this.net.emit('lobby:chat', text); }
   stop() { this.net.on('snap', null); }
 }

@@ -6,6 +6,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { pbr } from './assets.js';
 import { makeTwigCard } from './textures.js';
 import { makeRng } from '@shared/rng.js';
+import { terrainY } from '@shared/levels.js';
 
 function limb(rng, start, dir, len, r0, r1, bend) {
   const pts = [start.clone()]; let p = start.clone(), d = dir.clone();
@@ -82,7 +83,7 @@ export function buildTrees(root, map, density = 1) {
     const tw = v.twigGeo && new THREE.InstancedMesh(v.twigGeo, twigMat, list.length);
     list.forEach((t, i) => {
       const sc = t.h / 11, rs = t.r / 0.42;
-      m4.compose(p.set(t.x, 0, t.z), q.setFromEuler(e.set((t.x % 1) * 0.06, (t.x * 13.1 + t.z * 7.7) % 6.28, (t.z % 1) * 0.06)), s.set(rs * 0.9 + 0.1, sc, rs * 0.9 + 0.1));
+      m4.compose(p.set(t.x, terrainY(t.x, t.z) - 0.08, t.z), q.setFromEuler(e.set((t.x % 1) * 0.06, (t.x * 13.1 + t.z * 7.7) % 6.28, (t.z % 1) * 0.06)), s.set(rs * 0.9 + 0.1, sc, rs * 0.9 + 0.1));
       wood.setMatrixAt(i, m4); tw?.setMatrixAt(i, m4);
     });
     wood.castShadow = wood.receiveShadow = true; root.add(wood);

@@ -8,13 +8,14 @@ export function useSpecial(g, m, a = {}) {
   const def = MONSTERS[m.monster];
   switch (m.monster) {
     case 'mimic': {
-      if (m.disguise) { m.disguise = null; m.specialCdUntil = g.time + 3; g.emit({ t: 'reveal', id: m.id }); return; }
-      const pool = g.survivors().filter((p) => p.state !== 'mouse');
+      // Q again: drop the disguise at once — the monster is back (the cooldown starts now).
+      if (m.disguise) { m.disguise = null; m.specialCdUntil = g.time + 8; g.emit({ t: 'reveal', id: m.id, x: m.x, z: m.z }); return; }
+      const pool = g.survivors().filter((p) => p.state !== 'mouse' && p.state !== 'escaped');
       const target = pool.find((p) => p.id === a.target) || pool[Math.floor(g.random() * pool.length)];
       if (!target) return;
-      m.disguise = target.skin;
+      m.disguise = target.skin;   // she takes the look of one of the players in this match
       m.disguiseName = target.name;
-      m.specialCdUntil = g.time + def.specialCd;
+      void def;
       g.emit({ t: 'disguise', to: m.id, name: target.name });
       return;
     }
@@ -22,7 +23,7 @@ export function useSpecial(g, m, a = {}) {
       const s = g.lastScreech;
       if (!s || g.time - s.at > 12) { g.emit({ t: 'noCrow', to: m.id }); return; }
       const ang = g.random() * Math.PI * 2;
-      m.x = s.x + Math.sin(ang) * 3.2; m.z = s.z + Math.cos(ang) * 3.2;
+      m.x = s.x + Math.sin(ang) * 3.2; m.z = s.z + Math.cos(ang) * 3.2; m.level = 0;
       g.lastScreech = null;
       m.specialCdUntil = g.time + def.specialCd;
       g.emit({ t: 'teleport', x: m.x, z: m.z });
@@ -71,17 +72,17 @@ export function onAimRelease(g, m, st) {
     g.state.projectiles.push({ id: g.nextId++, owner: m.id, x: m.x + Math.sin(m.rot) * 0.8, z: m.z + Math.cos(m.rot) * 0.8, dir: m.rot, travel: 0, range: st.range > 2 ? 24 : 17, back: false });
     g.emit({ t: 'throw', x: m.x, z: m.z });
   } else if (m.monster === 'puppeteer') {
-    m.stringCdUntil = g.time + 6;
+    m.stringCdUntil = g.time + 1.2; // her strings are her weapon: no real cooldown, just a short recoil
     const reach = st.range > 2 ? 8 : 5.5;
     const target = g.survivors()
       .filter((p) => p.state === 'alive' && dist(m.x, m.z, p.x, p.z) < reach &&
-        Math.abs(angleDiff(m.rot, angleTo(m.x, m.z, p.x, p.z))) < 0.3)
+        Math.abs(angleDiff(m.rot, angleTo(m.x, m.z, p.x, p.z))) < 0.17 + 0.25 / Math.max(1, dist(m.x, m.z, p.x, p.z))) // a narrow lash: a sidestep dodges it
       .sort((a, b) => dist(m.x, m.z, a.x, a.z) - dist(m.x, m.z, b.x, b.z))[0];
     g.emit({ t: 'string', x: m.x, z: m.z, dir: m.rot, hit: !!target });
     if (target) {
       // pull the victim in front of the Puppeteer, then strike
-      const c = collide(g.map, m.x + Math.sin(m.rot) * 1.2, m.z + Math.cos(m.rot) * 1.2, 0.4);
-      target.x = c.x; target.z = c.z;
+      const c = collide(g.map, m.x + Math.sin(m.rot) * 1.2, m.z + Math.cos(m.rot) * 1.2, 0.4, 0, m.level | 0);
+      target.x = c.x; target.z = c.z; target.level = m.level | 0;
       hitSurvivor(g, m, target, 'string');
     }
   }

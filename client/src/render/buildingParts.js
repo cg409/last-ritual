@@ -16,6 +16,9 @@ export function uvBox(w, h, d, tile = 2) { // world-scaled UVs so textures don't
 
 export function addFrame(g, s, y0, w, h, y, mat) {
   const t = 0.12;
+  // The frame stands 2cm proud of the opening on every side: its inner faces used to sit exactly in
+  // the plane of the wall's jambs / lintel and z-fought (shimmering strips down every door frame).
+  w -= 0.04; h -= 0.02;
   const bar = (bw, bh, by, off) => {
     const m = sh(new THREE.Mesh(new THREE.BoxGeometry(s.alongX ? bw : WALL_T + 0.08, bh, s.alongX ? WALL_T + 0.08 : bw), mat));
     m.position.set(s.x + (s.alongX ? off : 0), y0 + y + by, s.z + (s.alongX ? 0 : off)); g.add(m);

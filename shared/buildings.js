@@ -28,18 +28,49 @@ export function makeBuilding({ id, type, x, z, w, d, floors = 2, sides, inner = 
   return b;
 }
 
-// Register collisions for a building on the map.
-export function addBuildingColliders(map, b) {
+// Wrecked house: knock out wall bays (gaps), leave others as broken, vaultable stubs, and give the
+// rest ragged partial heights (rendered only — they still block like full walls).
+export function wreckBuilding(b, rng) {
+  b.style = 'wrecked'; b.floors = 1; b.height = STORY;
   for (const s of b.segments) {
+    const r = rng();
     if (s.kind === 'door') continue;
+    if (r < 0.22) s.kind = 'gap';
+    else if (r < 0.45) { s.kind = 'broken'; s.h = 0.8 + rng() * 0.35; }
+    else { s.vis = 1.6 + rng() * (STORY - 1.6); s.kind = s.kind === 'window' && rng() < 0.5 ? 'window' : 'wall'; }
+  }
+  b.rubble = Array.from({ length: 10 }, () => ({ x: b.x + (rng() - 0.5) * b.w * 0.9, z: b.z + (rng() - 0.5) * b.d * 0.9, s: 0.4 + rng() * 0.8, r: rng() * 6 }));
+}
+
+// Register collisions for a building on the map. Two-storey buildings: exterior walls/corners block
+// on both floors (both:true); a ground-floor door is a window bay upstairs (lv:1); interior walls
+// exist only downstairs (the upper floor is an open loft).
+export function addBuildingColliders(map, b) {
+  const two = b.floors >= 2;
+  for (const s of b.segments) {
+    if (s.kind === 'gap') continue;
+    if (s.kind === 'door') {
+      if (two && s.exterior) map.rects.push({ x: s.x, z: s.z, hw: s.hw, hd: s.hd, h: 1.0, type: 'building', low: true, lv: 1 });
+      continue;
+    }
+    const low = s.kind === 'window' || s.kind === 'broken';
     map.rects.push({
-      x: s.x, z: s.z, hw: s.hw, hd: s.hd,
-      h: s.kind === 'window' ? 1.0 : b.height, type: 'building', low: s.kind === 'window',
+      x: s.x, z: s.z, hw: s.hw, hd: s.hd, h: s.kind === 'broken' ? s.h : low ? 1.0 : b.height,
+      type: 'building', low, both: two && s.exterior,
     });
   }
   // Corner posts so diagonal gaps don't leak
   for (const [cx, cz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    map.rects.push({ x: b.x + cx * b.w / 2, z: b.z + cz * b.d / 2, hw: 0.35, hd: 0.35, h: b.height, type: 'building' });
+    map.rects.push({ x: b.x + cx * b.w / 2, z: b.z + cz * b.d / 2, hw: 0.35, hd: 0.35, h: b.height, type: 'building', both: two });
+  }
+  // Staircase: side wall / rail along the open side (both floors), a rail across the low end
+  // (upstairs only: it's a drop) and a wall closing the space under the high end (downstairs only).
+  const st = b.stair;
+  if (st) {
+    const zc = (st.z0 + st.z1) / 2, side = st.open, rx0 = Math.min(st.xb, st.xt), rx1 = Math.max(st.xb, st.xt);
+    map.rects.push({ x: (rx0 + rx1) / 2, z: side, hw: (rx1 - rx0) / 2, hd: 0.08, h: 1.0, type: 'rail', low: true, both: true });
+    map.rects.push({ x: st.xb, z: zc, hw: 0.08, hd: (st.z1 - st.z0) / 2, h: 1.0, type: 'rail', low: true, lv: 1 });
+    map.rects.push({ x: st.xt, z: zc, hw: 0.12, hd: (st.z1 - st.z0) / 2, h: STORY, type: 'building' });
   }
 }
 

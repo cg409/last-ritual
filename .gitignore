@@ -6,3 +6,11 @@ dist/
 .env
 .env.local
 .DS_Store
+
+server/data/
+
+characters/
+tools/__pycache__/
+*.mp4
+client/dist/
+.env.production

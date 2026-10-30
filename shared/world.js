@@ -2,10 +2,11 @@
 import { KEY_COUNT } from './constants.js';
 import { dist } from './rng.js';
 import { becomeMouse } from './survivor.js';
-import { updateTraps, updateCrows, updateProjectiles, updateMimicExposure, updateNoise } from './hazards.js';
+import { updateTraps, updateCrows, updateProjectiles, updateNoise } from './hazards.js';
 
 export function onTombEnchanted(g, tomb, by) {
   const count = g.enchantedCount();
+  if (by?.stats) by.stats.enchants++;
   g.phase = Math.max(g.phase, count);
   g.emit({ t: 'enchanted', tomb: tomb.id, count, name: by.name });
   if (count === 1) g.emit({ t: 'phase', phase: 1, msg: "The monster's special ability is sealed." });
@@ -32,7 +33,7 @@ export function updateWorld(g, dt) {
     if (p.state === 'carried') {
       const c = g.player(p.carrier);
       if (!c || c.carrying !== p.id) { p.state = 'downed'; p.carrier = null; continue; }
-      p.x = c.x - Math.sin(c.rot) * 0.2; p.z = c.z - Math.cos(c.rot) * 0.2; p.rot = c.rot;
+      p.x = c.x - Math.sin(c.rot) * 0.2; p.z = c.z - Math.cos(c.rot) * 0.2; p.rot = c.rot; p.level = c.level | 0;
       p.wiggle += dt / 30; // fills on its own over 30s, faster when the victim presses A/D
       if (p.wiggle >= 1) {
         p.state = 'alive'; p.health = 1; p.carrier = null; p.wiggle = 0; p.boostUntil = g.time + 2;
@@ -46,6 +47,5 @@ export function updateWorld(g, dt) {
   updateTraps(g);
   updateCrows(g);
   updateProjectiles(g, dt);
-  updateMimicExposure(g);
   updateNoise(g, dt);
 }

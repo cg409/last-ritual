@@ -1,6 +1,6 @@
 // Detailed procedural props: hats & monster heads. Weapons/candle live in items.js. All in metres.
 import * as THREE from 'three';
-export { makeWeapon, makeCandle } from './items.js';
+export { makeWeapon, makeCandle, makeTorch, makeFlashlight } from './items.js';
 
 export const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0, ...o });
 export const metal = (color = 0x777777, rough = 0.45) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.85 });
