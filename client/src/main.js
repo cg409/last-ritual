@@ -164,11 +164,12 @@ async function startMatch(session, myId, back) {
   window.addEventListener('pagehide', flushMatch);
   const match = new Match({ stage, input, session, myId, onEnd: (result, _id, lastMe) => {
     app.match = null;
+    if (result.left && !(session instanceof LocalSession)) { app.net?.emit('lobby:leave'); app.lobby = null; app.lobbyUI = null; } // leaving mid-match: a bot takes your place
     backdrop('menu'); startAmbience(0.6);
     window.removeEventListener('pagehide', flushMatch);
     const rewards = flushed ? null : applyMatch(result, lastMe); // XP, level, coins, shards, achievements
     if (rewards && rewards.after.level > rewards.before.level) app.pendingLevelUp = [rewards.before.level, rewards.after.level];
-    endScreen(result, myId, { onAgain: back, onMenu: toMenu, againLabel: session instanceof LocalSession ? 'Play again' : 'Back to lobby', rewards });
+    endScreen(result, myId, { onAgain: result.left && !(session instanceof LocalSession) ? () => mp.multiEntry() : back, onMenu: toMenu, againLabel: session instanceof LocalSession ? 'Play again' : 'Back to lobby', rewards });
   } });
   // Everyone learns who became the monster during loading.
   const first = session.firstSnap || session.game?.snapshot();

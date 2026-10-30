@@ -39,7 +39,7 @@ export function doInteract(g, p, dt) {
   // 4) Climb into a cupboard / porta-potty
   if (tryHide(g, p, dt)) return;
   // 5) Open a chest (Ritualist opens faster)
-  const chest = (s.chests || []).find((c) => !c.opened && dist(p.x, p.z, c.x, c.z) < 1.5);
+  const chest = (s.chests || []).find((c) => !c.opened && (c.lv | 0) === (p.level | 0) && dist(p.x, p.z, c.x, c.z) < 1.5);
   if (chest) {
     p.chestId = chest.id;
     return progress(g, p, 'chest', (dt / CHESTS[chest.tier].time) * ritual(p), () => openChest(g, p, chest));

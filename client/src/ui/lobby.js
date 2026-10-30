@@ -95,7 +95,12 @@ export class LobbyUI {
     const skins = resolveSkins(members);
     this.skins = skins;
     q('#lb-title').textContent = state.title || (multi ? 'Lobby' : 'The Ritual');
-    q('#lb-code').innerHTML = state.code ? `CODE <b>${esc(state.code)}</b>` : '';
+    q('#lb-code').innerHTML = state.code ? `CODE <b>${esc(state.code)}</b> <button class="lb-copy" id="lb-copy" title="Copy the lobby code">Copy</button>` : '';
+    on('#lb-copy', 'click', async (_, b) => {
+      const code = state.code; let ok = false;
+      try { await navigator.clipboard.writeText(code); ok = true; } catch { const t = document.createElement('textarea'); t.value = code; document.body.appendChild(t); t.select(); try { ok = document.execCommand('copy'); } catch { /* */ } t.remove(); }
+      b.textContent = ok ? 'Copied!' : code; setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
 
     // seats
     const rows = [];

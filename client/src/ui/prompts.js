@@ -34,8 +34,8 @@ export function prompts(s, me, view) {
     else if (me.keys && !s.door.open && near(s.door.x, s.door.z, 5)) r.text = `${K('E')} Place keys in the gate`;
     else if (s.players.some((p) => p.state === 'hooked' && near(p.x, p.z, 2.4))) r.text = `${K('E')} Cut them down`;
     else if (s.players.some((p) => p.id !== me.id && p.role === 'survivor' && (p.state === 'downed' || (p.state === 'alive' && p.health === 1)) && near(p.x, p.z, 1.8))) r.text = `${K('E')} Heal`;
-    else if (view.map.chests.some((c, i) => !s.chests?.[i]?.opened && near(c.x, c.z, 1.5))) {
-      const c = view.map.chests.find((c, i) => !s.chests?.[i]?.opened && near(c.x, c.z, 1.5));
+    else if (view.map.chests.some((c, i) => !s.chests?.[i]?.opened && (c.lv | 0) === (me.level | 0) && near(c.x, c.z, 1.5))) {
+      const c = view.map.chests.find((c, i) => !s.chests?.[i]?.opened && (c.lv | 0) === (me.level | 0) && near(c.x, c.z, 1.5));
       r.text = `${K('E')} Open the ${CHESTS[c.tier].name.toLowerCase()}`;
     } else if ((view.map.hides || []).some((h) => (h.level | 0) === (me.level | 0) && near(h.ex, h.ez, 1.25))) {
       const h = view.map.hides.find((h) => (h.level | 0) === (me.level | 0) && near(h.ex, h.ez, 1.25));

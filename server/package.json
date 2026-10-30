@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "main": "index.js",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js"
   },
   "dependencies": {
     "express": "^4.19.2",
+    "nodemailer": "^10.3.1",
     "socket.io": "^4.8.1"
   }
 }

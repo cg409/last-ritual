@@ -65,6 +65,19 @@ export class BotBase {
     return false;
   }
 
+  // Anti-stall: an NPC that keeps pushing in some direction but has not really moved for 3 s (a furniture gap
+  // that is too narrow, a goal that flips between two tasks) gets shaken loose: a short walk in a random direction.
+  watchdog(out) {
+    const p = this.p, g = this.g;
+    if (this.wdUntil > g.time) { out.mx = Math.sin(this.wdDir); out.mz = Math.cos(this.wdDir); out.interact = false; return; }
+    const pushing = Math.hypot(out.mx || 0, out.mz || 0) > 0.5 && !out.interact && !p.act && p.state === 'alive' && !p.hideIn;
+    if (!this.wdPos || !pushing || dist(p.x, p.z, this.wdPos.x, this.wdPos.z) > 0.5) { this.wdPos = { x: p.x, z: p.z }; this.wdT = g.time; return; }
+    if (g.time - this.wdT > 3) {
+      this.wdDir = g.random() * Math.PI * 2; this.wdUntil = g.time + 0.9; this.wdT = g.time;
+      this.path = []; this.goal = null; this.chestQuestOff = g.time + 60; if (this.task && /^chest/.test(this.task)) this.task = null;
+    }
+  }
+
   face(x, z, out) { out.face = angleTo(this.p.x, this.p.z, x, z); }
   act(a) { this.actions.push(a); }
 }

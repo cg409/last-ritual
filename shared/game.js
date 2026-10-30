@@ -56,7 +56,7 @@ export class Game {
     }
     this.monster = this.state.players.find((p) => p.role === 'monster');
     this.state.hides = (this.map.hides || []).map((h) => ({ id: h.id, occupant: null }));
-    this.state.chests = this.map.chests.map((c) => ({ id: c.id, x: c.x, z: c.z, tier: c.tier, opened: false }));
+    this.state.chests = this.map.chests.map((c) => ({ id: c.id, x: c.x, z: c.z, lv: c.lv | 0, tier: c.tier, opened: false }));
     // (no traps lie around the realm: only the monster sets them — 2 of its one chosen kind)
     // Grace period: the curse takes 10s to awaken; specials begin on cooldown.
     this.monster.stunUntil = 10;
@@ -107,7 +107,7 @@ export class Game {
   // Disconnected humans are taken over by a bot so the match keeps going.
   removePlayer(id) {
     const p = this.player(id); if (!p || p.isBot) return;
-    p.isBot = true; p.name += ' (bot)';
+    p.isBot = true; p.name = p.name.replace(/\s*\[BOT\]$/, '') + ' [BOT]';
     p.input = { mx: 0, mz: 0, actions: [] };
     this.bots.set(p.id, p.role === 'monster' ? new MonsterBot(this, p) : new SurvivorBot(this, p));
   }
@@ -119,6 +119,7 @@ export class Game {
       const p = this.player(id);
       if (!p) continue;
       const out = bot.think(dt);
+      bot.watchdog?.(out);
       p.input = { ...out, actions: (p.input.actions || []).concat(bot.actions.splice(0)) };
     }
     for (const p of this.state.players) {

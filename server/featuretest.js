@@ -51,7 +51,7 @@ s.poisonUntil = 0;
 
 // chests
 const ch = g.state.chests.find((c) => c.tier === 'cursed');
-s.x = ch.x + 0.9; s.z = ch.z; s.level = 0; s._ctl = true;
+s.x = ch.x + 0.9; s.z = ch.z; s.level = ch.lv | 0; s._ctl = true;
 let t0 = g.time;
 for (let i = 0; i < 300 && !ch.opened; i++) { g.setInput('s1', { mx: 0, mz: 0, interact: true, actions: [] }); idle(); g.tick(0.05); }
 ok(ch.opened && s.shards >= 15 && s.unlimited && s.inv.eye >= 2, `cursed chest opened in ${(g.time - t0).toFixed(1)}s (ritualist): shards ${s.shards}, coins ${s.coins}, eye ${s.inv.eye}`);
@@ -91,3 +91,4 @@ for (let i = 0; i < 4; i++) { g.setInput('s4', { mx: 0, mz: 0, interact: true, a
 ok(s4.allyRevealUntil > g.time + 19, 'starting a rite reveals you to allies for 20s');
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);
+

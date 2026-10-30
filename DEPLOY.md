@@ -125,3 +125,15 @@ Players type their Gmail + message (+ up to 2 screenshots) in the game; the **se
 4. Test it: open the game → **Report** → write something → Send. The mail arrives in your inbox with the subject "[The Last Ritual] Report from …". Press **Reply** in Gmail to answer the player (the reply goes to the Gmail they typed).
 
 Until these two variables are set, reports are only saved on the server (nothing is e-mailed). Keep the address in Render's Environment only - do not write it into files you push to GitHub.
+
+---
+
+## Report mail without another service (Gmail app password)
+
+The developer address is now built into the server code **encrypted** (`server/inbox.js`), so you do not need `REPORT_TO_EMAIL` or Resend any more. The server sends the mail through Gmail itself. Gmail needs one thing from you - an *app password* (a separate password just for this server, not your real one):
+
+1. Google Account → **Security** → turn on **2-Step Verification** (if it is off).
+2. Search "App passwords" in the account settings → create one named `Last Ritual` → copy the 16 letters.
+3. Render → your service → **Environment** → add `GMAIL_APP_PASSWORD` = those 16 letters (no spaces) → Save.
+
+Important: Render's **free** plan blocks outgoing mail ports (SMTP), so on the free plan Gmail may refuse to connect. If a report cannot be sent it is kept in the server's `reports` folder instead (nothing is lost), and the old `RESEND_API_KEY` + `REPORT_TO_EMAIL` option still works as a backup route. A paid Render instance (or any host that allows SMTP) makes the Gmail route work.

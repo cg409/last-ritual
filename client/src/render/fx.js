@@ -24,7 +24,7 @@ export class Fx {
     this.fog = makeFog(map.seed, map.size, map.buildings); this.fogK = 0; this.banks = new FogBanks(this.root, this.fog, map);
     this.lights = new Map(); this.chestOpen = new Set();
     this.chestObjs = (map.chests || []).map((c) => {
-      const o = makeChest(c.tier); o.position.set(c.x, surfaceY(map, c.x, c.z, 0), c.z); o.rotation.y = c.rot;
+      const o = makeChest(c.tier); o.position.set(c.x, surfaceY(map, c.x, c.z, c.lv | 0), c.z); o.rotation.y = c.rot;
       this.root.add(o);
       return { id: c.id, o, lid: o.userData.lid };
     });

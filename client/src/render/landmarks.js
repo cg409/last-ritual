@@ -18,6 +18,14 @@ export function buildLamps(scene, map) {
   });
 }
 
+// soft round glow used for the lantern halos
+function haloTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+}
+
 // Exit: a stone gatehouse in the perimeter wall with two real wrought-iron gate leaves.
 export function buildDoor(scene, ex, sMat) {
   const g = new THREE.Group(); g.position.set(ex.x, 0, ex.z);
@@ -37,6 +45,20 @@ export function buildDoor(scene, ex, sMat) {
     const sock = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0x000000 }));
     sock.position.set(-0.8 + i * 0.8, 6.4, 1.35); g.add(sock); sockets.push(sock);
   }
+  // Hanging lanterns on both gateposts (front face) and over the arch: the gate is the goal, so it must be easy to spot in the dark.
+  const halo = haloTexture();
+  for (const [x, y] of [[-3.7, 3.4], [3.7, 3.4], [-3.7, 5.6], [3.7, 5.6], [0, 5.55]]) {
+    const L = new THREE.Group(); L.position.set(x, y, 1.62); g.add(L);
+    const iron = new THREE.MeshStandardMaterial({ color: 0x15130f, roughness: 0.6, metalness: 0.7 });
+    const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.34), iron); bracket.position.set(0, 0.42, -0.1); L.add(bracket);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.18, 6), iron); cap.position.y = 0.3; L.add(cap);
+    L.add(new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffc77a })));
+    L.add(new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.16, 0.42, 6, 1, true), new THREE.MeshStandardMaterial({ color: 0x1c1a14, wireframe: true })));
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.07, 6), iron); base.position.y = -0.24; L.add(base);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo, color: 0xffb060, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
+    spr.scale.set(3.2, 3.2, 1); L.add(spr);
+  }
+  for (const x of [-3.7, 3.7]) { const l = vlight(0xffb070, 1.6, 15, 2); l.position.set(x, 3.6, 2.2); l.flicker = 0.25; g.add(l); }
   // A beam of light from beyond the gate once it opens
   const light = vlight(0xffe0a0, 0, 18, 1.5); light.position.set(0, 3, -2); g.add(light);
   const glowMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });

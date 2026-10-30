@@ -33,7 +33,9 @@ export function objective(bot, out) {
 
   // Rescue hanging teammates (one NPC commits, brave ones go sooner)
   const hooked = g.survivors().find((o) => o.state === 'hooked' && o.hookT > 12 * (1 - bot.bravery));
-  if (hooked && (!taken.get('rescue' + hooked.id) && (bot.bravery > 0.5 || bot.closestTo(hooked)))) {
+  const av = bot.avoid && g.time < bot.avoid.until ? bot.avoid : null; // where the monster was just seen
+  const nearAv = (o, r = 15) => av && dist(av.x, av.z, o.x, o.z) < r;
+  if (hooked && !nearAv(hooked) && (!taken.get('rescue' + hooked.id) && (bot.bravery > 0.5 || bot.closestTo(hooked)))) {
     bot.task = 'rescue' + hooked.id;
     // don't walk into the monster's arms: wait in cover if it is camping in sight
     if (inSight(g, p, m) && dist(m.x, m.z, hooked.x, hooked.z) < 9 && !(m.monster === 'mimic' && m.disguise)) { out.crouch = true; return out; }
@@ -49,15 +51,28 @@ export function objective(bot, out) {
     return out;
   }
   // A chest in view close by: open it (bandages, batteries, coins…)
-  const chest = (s.chests || []).find((c) => !c.opened && dist(p.x, p.z, c.x, c.z) < 9 && !taken.get('chest' + c.id) && !(p.level | 0));
+  const chest = (s.chests || []).find((c) => !c.opened && (c.lv | 0) === (p.level | 0) && dist(p.x, p.z, c.x, c.z) < 9 && !taken.get('chest' + c.id) && !nearAv(c));
   if (chest && bot.bravery > 0.3) {
     bot.task = 'chest' + chest.id;
-    if (bot.goTo(chest.x, chest.z, out, 1.1, 0)) { out.interact = true; bot.face(chest.x, chest.z, out); }
+    if (bot.goTo(chest.x, chest.z, out, 1.1, chest.lv | 0)) { out.interact = true; bot.face(chest.x, chest.z, out); }
     return out;
+  }
+  // Some NPCs go looting: they know the hiding spots (upstairs, dark corners) and walk there when it is quiet.
+  // (start only when the monster is far; keep going until it gets much closer - no dithering at the threshold)
+  const md0 = dist(p.x, p.z, m.x, m.z), going = typeof bot.task === 'string' && bot.task.startsWith('chest');
+  if (bot.chestQuest && !av && md0 > (going ? 14 : 30) && bot.bravery > 0.4 && !(bot.chestQuestOff > g.time)) {
+    const far = (s.chests || []).filter((c) => !c.opened && !taken.get('chest' + c.id) && dist(p.x, p.z, c.x, c.z) < 55)
+      .sort((a, b) => dist(p.x, p.z, a.x, a.z) - dist(p.x, p.z, b.x, b.z))[0];
+    if (far) {
+      bot.task = 'chest' + far.id;
+      if (bot.goTo(far.x, far.z, out, 1.1, far.lv | 0)) { out.interact = true; bot.face(far.x, far.z, out); }
+      return out;
+    }
   }
   // Enchant: my own tomb if possible, favouring progress, avoiding where the monster was last seen
   const danger = bot.seenAt && g.time - bot.seenAt.t < 30 ? bot.seenAt : null;
-  const pick = s.tombs.filter((t) => !t.done)
+  const open = s.tombs.filter((t) => !t.done), safeTombs = open.filter((t) => !nearAv(t));
+  const pick = (av && !safeTombs.length ? [] : (safeTombs.length ? safeTombs : open))
     .map((t) => ({ t, score: dist(p.x, p.z, t.x, t.z) - t.progress * 25 + (taken.get('tomb' + t.id) || 0) * 40 + (danger && dist(danger.x, danger.z, t.x, t.z) < 14 ? 50 : 0) }))
     .sort((a, b) => a.score - b.score)[0]?.t;
   if (pick) {
@@ -69,5 +84,6 @@ export function objective(bot, out) {
     return out;
   }
   bot.task = null;
+  if (av && open.length && dist(p.x, p.z, av.x, av.z) < 28) bot.sneakAway(av, out); // every tomb is guarded right now: back off quietly and wait
   return out;
 }

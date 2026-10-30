@@ -1,13 +1,15 @@
-﻿// Player reports / feedback: a Gmail address, a message and up to two screenshots, sent from the game straight to the
+// Player reports / feedback: a Gmail address, a message and up to two screenshots, sent from the game straight to the
 // developer's inbox (the player never sees the developer's address). Mail goes out through the Resend HTTPS API
 // (free hosts such as Render block normal SMTP). Set on the server:  RESEND_API_KEY  and  REPORT_TO_EMAIL.
 // Without them the report is saved to DATA_DIR/reports instead, so nothing is lost.
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import nodemailer from 'nodemailer';
 import { byTokenString } from './accounts.js';
+import { inboxAddress } from './inbox.js';
 
-const TO = process.env.REPORT_TO_EMAIL, KEY = process.env.RESEND_API_KEY;
+const TO = process.env.REPORT_TO_EMAIL || inboxAddress(), KEY = process.env.RESEND_API_KEY, APP_PASS = process.env.GMAIL_APP_PASSWORD;
 const FROM = process.env.REPORT_FROM_EMAIL || 'The Last Ritual <onboarding@resend.dev>';
 const DIR = process.env.DATA_DIR || path.resolve('data');
 const hits = new Map(); // ip -> [timestamps]  (3 reports per hour per player)
@@ -31,7 +33,19 @@ export function mountReport(app) {
       hits.set(ip, [...recent, now]);
       const subject = `[The Last Ritual] Report from ${user?.name || 'a guest'}`;
       const text = `From: ${email}\nPlayer: ${user?.name || 'guest'}\nDevice: ${String(b.device || '').slice(0, 200)}\nTime: ${new Date().toISOString()}\n\n${message}\n\n(Reply to this e-mail to answer the player.)`;
-      if (KEY && TO) {
+      let sent = false;
+      if (APP_PASS) { // Gmail itself: the address above is both sender and receiver, no other service involved
+        try {
+          for (const port of [465, 587]) {
+            try {
+              const tr = nodemailer.createTransport({ host: 'smtp.gmail.com', port, secure: port === 465, auth: { user: TO, pass: APP_PASS }, connectionTimeout: 9000, greetingTimeout: 9000, socketTimeout: 15000 });
+              await tr.sendMail({ from: `The Last Ritual <${TO}>`, to: TO, replyTo: email, subject, text, attachments: images.map((i) => ({ filename: i.filename, content: i.content, encoding: 'base64' })) });
+              sent = true; break;
+            } catch (e) { console.error('gmail smtp', port, e.message); }
+          }
+        } catch (e) { console.error(e); }
+      }
+      if (sent) { /* delivered through Gmail */ } else if (KEY && TO) {
         const r = await fetch('https://api.resend.com/emails', {
           method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ from: FROM, to: [TO], reply_to: email, subject, text, attachments: images }),

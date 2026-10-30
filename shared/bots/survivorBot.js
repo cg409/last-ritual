@@ -20,6 +20,7 @@ export class SurvivorBot extends BotBase {
     this.bravery = 0.4 + g.random() * 0.6;   // willingness to rescue / stay on tombs
     this.suspicion = 0; this.suspectAt = 3 + (1 - this.skill) * 6 + g.random() * 3; // seconds to see through the Mimic
     this.hideUntilCalm = false; this.calmT = 0; this.zig = g.random() * 6;
+    this.fleeUntil = 0; this.lastThreat = null; this.avoid = null; this.chestQuest = g.random() < 0.4 ? 1 : 0;
     this.heardAt = null; // where the last footsteps / noise seemed to come from
   }
 
@@ -34,6 +35,15 @@ export class SurvivorBot extends BotBase {
     if (!lineOfSight(g.map, p.x, p.z, m.x, m.z, p.level | 0)) { r *= 0.6; if (md > r) return null; }
     const err = 2 + md * 0.3;
     return { x: m.x + (g.random() - 0.5) * err * 2, z: m.z + (g.random() - 0.5) * err * 2, d: md };
+  }
+
+  // Slipping away is a decision, not a per-tick reflex: keep going for 4 s and treat the area as off limits for 20 s
+  // (otherwise the NPC creeps off, drifts back past the invisible threshold, creeps off again... = flickering).
+  commitSneak(from, out) {
+    const g = this.g;
+    if (!(this.sneakUntil > g.time)) { this.sneakFrom = from; this.sneakUntil = g.time + 4; }
+    this.avoid = { x: this.sneakFrom.x, z: this.sneakFrom.z, until: g.time + 20 };
+    return this.sneakAway(this.sneakFrom, out);
   }
 
   // Quietly slip away from a danger spot (heard or sensed, not seen): walk or crouch - never sprint, that is loud -
@@ -122,16 +132,24 @@ export class SurvivorBot extends BotBase {
     }
     this.hiddenT = 0;
     if (threat && dist(p.x, p.z, threat.x, threat.z) < 16) this.fearT += dt; else this.fearT = Math.max(0, this.fearT - dt);
-    if (this.fearT > this.reaction) return this.flee(threat || { x: m.x, z: m.z, t: g.time }, out, !!seen);
+    if (seen && md < 24) this.avoid = { x: seen.x, z: seen.z, until: g.time + 20 }; // a place the monster was just seen: stay away from it for a while
+    if (this.fearT > this.reaction) {
+      this.lastThreat = threat || { x: m.x, z: m.z, t: g.time };
+      if (this.fleeUntil < g.time) this.fleeUntil = g.time + 3.5; // commit: no turning back after one step (stops the run-in / run-out flicker)
+      this.avoid = { x: this.lastThreat.x, z: this.lastThreat.z, until: g.time + 22 };
+      return this.flee(this.lastThreat, out, !!seen);
+    }
+    if (this.fleeUntil > g.time && this.lastThreat) return this.flee(this.lastThreat, out, false);
+    if (this.sneakUntil > g.time && this.sneakFrom && !p.act) return this.commitSneak(this.sneakFrom, out);
 
     // The heartbeat (terror radius, no direction): the timid crouch and look for cover.
     const heartbeat = md < 32 && m.monster !== 'stalker' && !(m.monster === 'mimic' && m.disguise);
     // Close but unseen: never dive into a cupboard or bush in front of it (it would see which one) - keep still-ish,
     // quiet, and slip away out of its line of sight.
     if (heartbeat && md < 15 && !threat && this.bravery < 0.9 && !(p.act && p.act !== 'enchant')) {
-      return this.sneakAway(alert || { x: m.x + (g.random() - 0.5) * 8, z: m.z + (g.random() - 0.5) * 8 }, out);
+      return this.commitSneak(alert || { x: m.x + (g.random() - 0.5) * 8, z: m.z + (g.random() - 0.5) * 8 }, out);
     }
-    if (alert && !threat && md < 22 && this.bravery < 0.95 && !p.act) return this.sneakAway(alert, out);
+    if (alert && !threat && md < 22 && this.bravery < 0.95 && !p.act) return this.commitSneak(alert, out);
     // Injured and safe for now: stand still and mend (limited uses).
     if (p.health === 1 && (p.heals > 0 || p.inv.bandage > 0) && !threat && !heartbeat && (!p.act || p.act === 'selfheal')) { out.heal = true; return out; }
     // Flashlight: only when it's really dark and nothing hunts nearby (it gives you away).

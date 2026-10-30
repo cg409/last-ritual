@@ -54,7 +54,10 @@ export class LobbyManager {
     const gone = lobby.members.find((m) => m.id === socket.id);
     lobby.members = lobby.members.filter((m) => m.id !== socket.id);
     if (gone && !lobby.game) this.io.to(c).emit('lobby:chat', { sys: true, text: `${gone.name} left the circle.` });
-    if (lobby.game) lobby.game.removePlayer(socket.id);
+    if (lobby.game) {
+      lobby.game.removePlayer(socket.id); // an NPC brain takes the character over (name gets a [BOT] tag)
+      if (gone) this.io.to(c).emit('lobby:chat', { sys: true, text: `${gone.name} left the game - a bot took over their character.` });
+    }
     if (!lobby.members.length) { clearInterval(lobby.timer); this.lobbies.delete(c); return; }
     if (lobby.host === socket.id) lobby.host = lobby.members[0].id;
     this.broadcast(lobby);

@@ -15,7 +15,5 @@ services:
         value: 20
       - key: CLIENT_ORIGIN
         value: "*"   # after deploying Netlify, set to e.g. https://your-site.netlify.app
-      - key: REPORT_TO_EMAIL      # where in-game reports are e-mailed (your private Gmail)
-        sync: false
-      - key: RESEND_API_KEY       # free key from resend.com (see DEPLOY.md)
+      - key: GMAIL_APP_PASSWORD   # Google app password for the in-game report mail (see DEPLOY.md)
         sync: false

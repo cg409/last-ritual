@@ -155,6 +155,7 @@ function handleAction(g, p, a) {
   } else if (a.t === 'skill' && p.skill && a.id === p.skill.id) {
     if (p.skill.trap) resolveTrapSkill(g, p, a.result); else resolveSkill(g, p, a.result);
   } else if (a.t === 'light') {
+    if (p.light <= 0 && p.inv.battery > 0 && !p.unlimited) { p.inv.battery--; p.light = FLASHLIGHT.battery; } // a spare battery goes in by itself
     p.lightOn = !p.lightOn && (p.unlimited || p.light > 0);
   } else if (a.t === 'item') useItem(g, p, a.item);
 }
@@ -167,10 +168,12 @@ function useItem(g, p, item) {
 }
 
 function updateFlashlight(p, dt) {
-  if (!p.lightOn || p.unlimited) return;
+  if (p.unlimited) return;
+  if (p.light <= 0 && p.inv.battery > 0) { p.inv.battery--; p.light = FLASHLIGHT.battery; return; } // empty + spare battery: refill automatically (even if the light was off)
+  if (!p.lightOn) return;
   p.light -= dt;
   if (p.light <= 0) {
-    if (p.inv.battery > 0) { p.inv.battery--; p.light += FLASHLIGHT.battery; } else { p.light = 0; p.lightOn = false; }
+    if (p.inv.battery > 0) { p.inv.battery--; p.light = Math.max(0, p.light) + FLASHLIGHT.battery; } else { p.light = 0; p.lightOn = false; }
   }
 }
 
