@@ -5,7 +5,7 @@ services:
     name: last-ritual-server
     runtime: node
     plan: free
-    region: singapore   # closest to India (use oregon / frankfurt / ohio / virginia for other places)
+    region: singapore
     rootDir: .
     buildCommand: cd server && npm install
     startCommand: cd server && npm start
@@ -14,6 +14,6 @@ services:
       - key: NODE_VERSION
         value: 20
       - key: CLIENT_ORIGIN
-        value: "*"   # after deploying Netlify, set to e.g. https://your-site.netlify.app
-      - key: GMAIL_APP_PASSWORD   # Google app password for the in-game report mail (see DEPLOY.md)
+        value: "*"
+      - key: GMAIL_APP_PASSWORD
         sync: false
