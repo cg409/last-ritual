@@ -63,7 +63,7 @@ export class MenuScene {
     if (this.boltT > 0) { this.boltT -= dt; flash = Math.random() < 0.6 ? this.boltT * 2 : 0; }
     const st = this.stage;
     st.renderer.toneMappingExposure = st.baseExposure + flash * 1.5;
-    st.scene.fog.density = 0.05;
+    st.scene.fog.density = 0.075; st.sky.ring.visible = false; // (no distant treeline spikes behind the menu)
     st.scene.fog.color.copy(st.fogColor); st.scene.background.copy(st.fogColor);
     st.moon.intensity = st.baseMoon; st.hemi.intensity = st.baseHemi; st.sky.setDark(0);
     st.follow(new THREE.Vector3(0, 0, -6), t);

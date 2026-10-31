@@ -3,6 +3,7 @@
 // the mansion's cell). A survivor holds E to climb in and presses E to climb out; inside they can't
 // be seen. The monster can search a door (hold E): if someone is inside, they're dragged out.
 import { makeRng, dist } from './rng.js';
+import { weaponStats } from './weapons.js';
 
 export const HIDE = { enter: 0.7, search: 1.1, reach: 1.25 };
 const LOCKER = { w: 1.0, d: 0.62, h: 2.15 }, POTTY = { w: 1.25, d: 1.25, h: 2.35 };
@@ -100,7 +101,7 @@ export function leaveHide(g, p, h = g.map.hides[p.hideIn]) {
 // Monster holding E at a hiding place: search it. Someone inside is dragged out (and carried).
 export function trySearch(g, m, dt, progress) {
   const h = nearHide(g, m, HIDE.reach + 0.2); if (!h || m.carrying) return false;
-  progress(m, 'search', dt / HIDE.search, () => {
+  progress(m, 'search', dt / (HIDE.search * weaponStats(m.weapon, m.weaponLvl).srch), () => {
     const st = g.state.hides[h.id], v = st.occupant && g.player(st.occupant);
     g.emit({ t: 'search', x: h.x, z: h.z, spot: h.id, found: !!v });
     if (!v) return;

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { makeTorch, tickTorch } from './items.js';
 import { makeKey } from './landmarks.js';
 import { animateCrow } from './crow.js';
-import { makeTrap, makeTrident, Bolt, Puffs, Footprints } from './effects.js';
+import { makeTrap, makeThrown, Bolt, Puffs, Footprints } from './effects.js';
 import { dist } from '@shared/rng.js';
 import { surfaceY } from '@shared/levels.js';
 import { makeChest } from './chests.js';
@@ -126,7 +126,7 @@ export class Fx {
       l.intensity += ((on ? 5.5 : 0) - l.intensity) * Math.min(1, dt * 12);
       if (ch) { const r = ch.root.rotation.y - Math.PI; l.position.set(ch.root.position.x + Math.sin(r) * 2.6, ch.root.position.y + 1.0, ch.root.position.z + Math.cos(r) * 2.6); }
     }
-    this.sync(this.projs, s.projectiles, () => makeTrident(), (o, p) => { o.position.set(p.x, 1.4, p.z); o.rotation.set(0, p.dir, 0); });
+    this.sync(this.projs, s.projectiles, (p) => makeThrown(s.players.find((q) => q.id === p.owner)?.weapon), (o, p) => { o.position.set(p.x, 1.4, p.z); o.rotation.set(0, p.dir, 0); if (o.userData.pivot) o.userData.pivot.rotation.x = this.view.time * 16; });
     // Monster lantern/candle lights off during blackout
     for (const ch of v.chars.values()) {
       if (ch.candle && s.blackout) ch.candle.userData.beam.visible = ch.candle.userData.lens.visible = false;

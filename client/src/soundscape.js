@@ -15,8 +15,9 @@ const VOICE = {
   stalker: { id: 'stalker', rate: 1 },
   puppeteer: { id: 'kidLaugh', rate: 0.92 },
   wanderer: { id: 'stalker', rate: 0.8 },                       // the same breathing, slower and deeper
-  ravager: { id: 'chainsaw', rate: 0.85, dur: 2.2, rnd: 8, vol: 0.55 }, // the saw idling
+  ravager: { id: 'stalker', rate: 0.7, vol: 0.9 },              // a low, wet growl
 };
+const VOICE_SAW = { id: 'chainsaw', rate: 0.85, dur: 2.2, rnd: 8, vol: 0.55 }; // a chainsaw in the monster's hands idles loudly: its weakness
 
 export class Soundscape {
   constructor(map) {
@@ -61,7 +62,7 @@ export class Soundscape {
     if (mon && this.t >= this.voiceT) {
       const surv = s.players.filter((p) => p.role === 'survivor' && p.state === 'alive');
       const near = Math.min(99, ...surv.map((p) => dist(p.x, p.z, mon.x, mon.z)));
-      const v = VOICE[mon.monster] || VOICE.stalker;
+      const v = mon.weapon === 'chainsaw' ? VOICE_SAW : VOICE[mon.monster] || VOICE.stalker;
       if (!(mon.monster === 'mimic' && mon.disguise)) {
         const d = me.id === mon.id ? 0 : dist(L.x, L.z, mon.x, mon.z);
         const vol = (me.id === mon.id ? 0.45 : Math.pow(Math.max(0, 1 - d / 50), 1.3)) * (v.vol || 1);

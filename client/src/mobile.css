@@ -89,3 +89,9 @@ html.touch .hud .monstername { font-size: 10px; letter-spacing: .08em; max-width
 html.touch .hud .tombs { gap: 6px; margin-top: 4px; } html.touch .hud .tomb { width: 22px !important; height: 32px !important; }
 html.touch .hud .minimap { transform: scale(.45); }
 html.touch .hud .banner { font-size: 15px; top: 70px; }
+
+@media (max-height: 560px) { .mm-top { top: 8px; right: 10px; gap: 5px; } .mm-top-row { gap: 6px; } .mm-mail { width: 44px; } .mm-top .mm-signin { padding: 6px 8px; font-size: 10px; } }
+@media (max-height: 560px) { .mm-mail { width: 30px; height: 30px; } .mm-mail svg { width: 16px; height: 16px; } }
+@media (max-height: 560px) { .mm-mail { height: auto; width: 32px; } }
+@media (max-height: 560px) { .mm-mail { height: 26px; width: 32px; align-self: center; } .mm-mail svg { width: 14px; height: 14px; } }
+@media (max-height: 560px) { .mm-mail { align-self: flex-start; } }

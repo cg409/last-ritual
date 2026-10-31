@@ -74,7 +74,7 @@ export class BotBase {
     if (!this.wdPos || !pushing || dist(p.x, p.z, this.wdPos.x, this.wdPos.z) > 0.5) { this.wdPos = { x: p.x, z: p.z }; this.wdT = g.time; return; }
     if (g.time - this.wdT > 3) {
       this.wdDir = g.random() * Math.PI * 2; this.wdUntil = g.time + 0.9; this.wdT = g.time;
-      this.path = []; this.goal = null; this.chestQuestOff = g.time + 60; if (this.task && /^chest/.test(this.task)) this.task = null;
+      this.path = []; this.goal = null; if (typeof this.task === 'string' && this.task.startsWith('chest')) { (this.badChest ||= new Set()).add(this.task.slice(5)); this.task = null; } // that chest cannot be reached: never try it again
     }
   }
 

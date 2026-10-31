@@ -5,6 +5,7 @@
 // sees the monster, breaks line of sight, uses pallets, windows, grass, darkness and hiding places,
 // and comes back out once the heartbeat has faded.
 import { BotBase } from './botBase.js';
+import { weaponStats } from '../weapons.js';
 import { dist, angleTo } from '../rng.js';
 import { inGrass, lineOfSight } from '../nav.js';
 import { objective } from './survivorGoals.js';
@@ -29,7 +30,8 @@ export class SurvivorBot extends BotBase {
   hear(m, md) {
     const g = this.g, p = this.p;
     if (m.monster === 'stalker' || (m.monster === 'mimic' && m.disguise)) return null;
-    let r = m.running || m.lunge ? 16 : 8;
+    const wh = weaponStats(m.weapon, m.weaponLvl).hear; // heavy weapons drag and thud, a machete is quiet, a chainsaw idles loudly
+    let r = (m.running || m.lunge ? 16 : 8) * wh;
     if (m.sawUntil > g.time || m.revUntil > g.time) r = 40;
     if (md > r) return null;
     if (!lineOfSight(g.map, p.x, p.z, m.x, m.z, p.level | 0)) { r *= 0.6; if (md > r) return null; }

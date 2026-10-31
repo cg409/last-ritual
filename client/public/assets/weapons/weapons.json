@@ -1,0 +1,66 @@
+{
+ "chainsaw": {
+  "len": 0.8,
+  "axis": 2,
+  "headHigh": true,
+  "lowS": 0.377,
+  "highS": 0.227,
+  "kb": 552
+ },
+ "axe": {
+  "len": 0.9,
+  "axis": 1,
+  "headHigh": true,
+  "lowS": 0.2,
+  "highS": 1.035,
+  "kb": 356
+ },
+ "machete": {
+  "len": 0.72,
+  "axis": 0,
+  "headHigh": false,
+  "lowS": 0.555,
+  "highS": 0.322,
+  "kb": 499
+ },
+ "cleaver": {
+  "len": 0.56,
+  "axis": 0,
+  "headHigh": false,
+  "lowS": 0.555,
+  "highS": 0.322,
+  "kb": 499
+ },
+ "bat": {
+  "len": 0.95,
+  "axis": 1,
+  "headHigh": true,
+  "lowS": 0.218,
+  "highS": 0.377,
+  "kb": 453
+ },
+ "sledge": {
+  "len": 1.05,
+  "axis": 0,
+  "headHigh": false,
+  "lowS": 0.699,
+  "highS": 0.227,
+  "kb": 420
+ },
+ "maul": {
+  "len": 1.1,
+  "axis": 1,
+  "headHigh": true,
+  "lowS": 0.537,
+  "highS": 0.539,
+  "kb": 745
+ },
+ "crowbar": {
+  "len": 0.88,
+  "axis": 0,
+  "headHigh": false,
+  "lowS": 0.664,
+  "highS": 0.236,
+  "kb": 592
+ }
+}

@@ -51,7 +51,7 @@ export function objective(bot, out) {
     return out;
   }
   // A chest in view close by: open it (bandages, batteries, coins…)
-  const chest = (s.chests || []).find((c) => !c.opened && (c.lv | 0) === (p.level | 0) && dist(p.x, p.z, c.x, c.z) < 9 && !taken.get('chest' + c.id) && !nearAv(c));
+  const chest = (s.chests || []).find((c) => !c.opened && (c.lv | 0) === (p.level | 0) && dist(p.x, p.z, c.x, c.z) < 9 && !taken.get('chest' + c.id) && !nearAv(c) && !bot.badChest?.has(String(c.id)));
   if (chest && bot.bravery > 0.3) {
     bot.task = 'chest' + chest.id;
     if (bot.goTo(chest.x, chest.z, out, 1.1, chest.lv | 0)) { out.interact = true; bot.face(chest.x, chest.z, out); }
@@ -61,7 +61,7 @@ export function objective(bot, out) {
   // (start only when the monster is far; keep going until it gets much closer - no dithering at the threshold)
   const md0 = dist(p.x, p.z, m.x, m.z), going = typeof bot.task === 'string' && bot.task.startsWith('chest');
   if (bot.chestQuest && !av && md0 > (going ? 14 : 30) && bot.bravery > 0.4 && !(bot.chestQuestOff > g.time)) {
-    const far = (s.chests || []).filter((c) => !c.opened && !taken.get('chest' + c.id) && dist(p.x, p.z, c.x, c.z) < 55)
+    const far = (s.chests || []).filter((c) => !c.opened && !taken.get('chest' + c.id) && dist(p.x, p.z, c.x, c.z) < 55 && !bot.badChest?.has(String(c.id)))
       .sort((a, b) => dist(p.x, p.z, a.x, a.z) - dist(p.x, p.z, b.x, b.z))[0];
     if (far) {
       bot.task = 'chest' + far.id;

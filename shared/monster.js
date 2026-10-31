@@ -1,5 +1,6 @@
 // Monster rules. Phase penalties: 1 enchant = special sealed, 2 = slower + shorter reach.
 import { MONSTER_BASE, MONSTERS, REVEAL } from './constants.js';
+import { weaponStats } from './weapons.js';
 import { dist, angleTo, angleDiff } from './rng.js';
 import { moveBody, becomeMouse } from './survivor.js';
 import { useSpecial, onAimRelease, updateAiming } from './abilities.js';
@@ -17,11 +18,13 @@ export function monsterStats(g) {
   const n = g.enchantedCount();
   const weak = g.phase >= 2 || n >= 2;
   const [walk, run] = g.monster?.disguise ? DISGUISED : SPEED[g.monster?.monster] || [MONSTER_BASE.speed, MONSTER_BASE.runSpeed];
+  const w = weaponStats(g.monster?.weapon, g.monster?.weaponLvl), wm = g.monster?.disguise ? 1 : w.speed; // the weapon changes how fast you move (a disguised Mimic still moves like a survivor)
   return {
-    speed: walk * (weak ? 0.92 : 1),
-    runSpeed: run * (weak ? 0.93 : 1),
-    range: MONSTER_BASE.attackRange * (weak ? 0.7 : 1),
+    speed: walk * (weak ? 0.92 : 1) * wm,
+    runSpeed: run * (weak ? 0.93 : 1) * wm,
+    range: MONSTER_BASE.attackRange * (weak ? 0.7 : 1) * w.range,
     specialSealed: g.phase >= 1,
+    w,
   };
 }
 
@@ -47,14 +50,14 @@ export function updateMonster(g, m, dt) {
   if (lunging) {
     // Lunge: a burst forward along the facing; hits are checked every tick of the lunge.
     const r = m.rot;
-    moveBody(g, m, { mx: Math.sin(r), mz: Math.cos(r), face: r }, Math.max(speed, st.runSpeed) * 1.35, dt, 0.45);
+    moveBody(g, m, { mx: Math.sin(r), mz: Math.cos(r), face: r }, Math.max(speed, st.runSpeed) * 1.35 * st.w.lunge, dt, 0.45);
     m.rot = r;
     lungeHit(g, m, st);
   } else moveBody(g, m, inp, speed, dt, 0.45);
   if (typeof inp.face === 'number' && !stunned) m.rot = inp.face;
   if (m.lungeUntil && m.lungeUntil <= g.time) { // lunge ended without connecting
     m.lungeUntil = 0;
-    if (!m.lungeHit) m.attackCdUntil = g.time + 0.9;
+    if (!m.lungeHit) m.attackCdUntil = g.time + 0.9 * st.w.cd;
   }
   if (inp.interact && !stunned) doMonsterInteract(g, m, dt); else { m.act = null; m.actT = 0; }
 }
@@ -71,10 +74,11 @@ function handleAction(g, m, a, st) {
     m.traps--;
     g.state.traps.push({ id: g.nextId++, x: m.x + Math.sin(m.rot) * 0.8, z: m.z + Math.cos(m.rot) * 0.8, level: m.level | 0, type: m.trap, lvl: m.trapLvl, owner: m.id });
     g.emit({ t: 'trapSet', to: m.id });
-  } else if (a.t === 'rev' && m.monster === 'ravager' && m.sawUntil < g.time) {
+  } else if (a.t === 'rev' && st.w.rev && m.sawUntil < g.time) {
     m.revUntil = g.time + 1.2; m.sawUntil = g.time + 7.2;
     g.emit({ t: 'saw', x: m.x, z: m.z });   // heard across the whole realm
-  } else if (a.t === 'aimRelease') onAimRelease(g, m, st);
+  } else if (a.t === 'aimRelease') { if (m.aiming) onAimRelease(g, m, st); else tryAttack(g, m, st); } // left click while aiming = shoot (no aim ready: a normal swing)
+  else if (a.t === 'aimCancel') m.aiming = false;
   else if (a.t === 'drop' && m.carrying) {
     const v = g.player(m.carrying); m.carrying = null;
     if (v) { v.state = 'downed'; v.carrier = null; }
@@ -100,26 +104,35 @@ function lungeHit(g, m, st) {
     Math.abs(angleDiff(m.rot, angleTo(m.x, m.z, p.x, p.z))) < 0.95);
   if (!target) return;
   m.lungeHit = true; m.lungeUntil = 0;
-  m.attackCdUntil = g.time + MONSTER_BASE.attackCd;
-  hitSurvivor(g, m, target, MONSTERS[m.monster].weapon);
+  m.attackCdUntil = g.time + MONSTER_BASE.attackCd * st.w.cd;
+  hitSurvivor(g, m, target, m.weapon);
 }
 
-// The Ravager only bruises until the chainsaw is revved; the chainsaw downs in one hit.
+// A melee hit. What it does depends on the monster's WEAPON (shared/weapons.js): damage 1 or 2, grazes, slowing wounds, and the
+// chainsaw that must be revved. Ability hits (string / trident) are always plain 1-damage hits.
 export function hitSurvivor(g, m, p, weapon) {
   if (p.state !== 'alive') return;
-  const saw = m.monster === 'ravager' && m.sawUntil > g.time && m.revUntil < g.time;
-  if (m.monster === 'ravager' && !saw && p.health <= 1) {
+  const melee = !['string', 'trident'].includes(weapon), w = weaponStats(m.weapon, m.weaponLvl);
+  const revved = !!w.rev && m.sawUntil > g.time && m.revUntil < g.time;
+  let dmg = melee ? (w.rev ? (revved ? 2 : 1) : w.dmg) : 1;
+  if (melee && w.rev && !revved && p.health <= 1) { // an idle chainsaw only bruises
     p.slowUntil = g.time + 2;
     g.emit({ t: 'hit', id: p.id, name: p.name, weapon: 'fist', x: p.x, z: p.z });
     return;
   }
-  p.health -= saw ? 2 : 1;
+  if (melee && w.graze && g.random() < w.graze) { // a shallow cut
+    p.slowUntil = Math.max(p.slowUntil || 0, g.time + 1);
+    g.emit({ t: 'hit', id: p.id, name: p.name, weapon: 'fist', x: p.x, z: p.z });
+    return;
+  }
+  p.health -= dmg;
+  if (melee && w.slow) p.slowUntil = Math.max(p.slowUntil || 0, g.time + w.slow);
   if (m?.stats) m.stats.hits++;
   p.act = null; p.skill = null; p.holding = false; p.selfHealT = 0;
-  g.emit({ t: 'hit', id: p.id, name: p.name, weapon, x: p.x, z: p.z });
+  g.emit({ t: 'hit', id: p.id, name: p.name, weapon: melee ? m.weapon : weapon, x: p.x, z: p.z });
   if (p.health <= 0) { p.health = 0; p.state = 'downed'; p.downT = 0; g.emit({ t: 'downed', id: p.id, name: p.name }); }
   else p.boostUntil = g.time + 2;
-  if (saw) m.sawUntil = g.time;
+  if (revved) m.sawUntil = g.time;
 }
 
 function doMonsterInteract(g, m, dt) {

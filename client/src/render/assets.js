@@ -136,3 +136,32 @@ export const ALL_MODELS = ['dead_tree_trunk', 'dead_tree_trunk_02', 'shrub_01', 
   'weed_plant_02', 'grass_medium_01', 'grass_medium_02', 'rock_moss_set_01', 'rock_moss_set_02', 'boulder_01', 'tree_stump_01',
   'dry_branches_medium_01', 'Barrel_01', 'wooden_crate_01', 'old_tyre', 'covered_car', 'large_iron_gate', 'street_lamp_01',
   'gothic_statue', 'wheelchair_01', 'Lantern_01', 'street_rat'];
+
+// ---- Monster weapons (public/assets/weapons/<id>.glb): shaft along +Y, grip end at the origin, business end at +Y = length ----
+const weaponCache = new Map();
+export async function loadWeapons(ids) {
+  const list = ids || (await import('@shared/weapons.js')).WEAPON_IDS;
+  await Promise.all(list.map(async (id) => {
+    if (weaponCache.has(id)) return;
+    try {
+      const g = await loadRetry(gltfLoader, `${BASE}weapons/${id}.glb`);
+      g.scene.traverse((o) => {
+        if (!o.isMesh) return;
+        if (graphics().lite) o.material = liteMat(o.material);
+        const m = o.material; // no environment map: a metallic surface would render black, so keep them mostly diffuse
+        if (m.isMeshStandardMaterial) { m.metalness = Math.min(m.metalness, 0.12); m.metalnessMap = null; m.roughness = Math.max(m.roughness, 0.55); }
+        if (m.map) m.map.anisotropy = anisotropy;
+        o.castShadow = true; o.frustumCulled = false;
+      });
+      g.scene.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(g.scene);
+      weaponCache.set(id, { scene: g.scene, head: box.max.y });
+    } catch (e) { console.warn('weapon failed', id, e); }
+  }));
+}
+// A fresh copy of a weapon (null until loaded). userData.head = distance from the grip to the business end.
+export function cloneWeapon(id) {
+  const w = weaponCache.get(id); if (!w) return null;
+  const g = new THREE.Group(); g.add(w.scene.clone(true)); g.userData.head = w.head;
+  return g;
+}

@@ -11,6 +11,7 @@ import { ViewModel } from './viewmodel.js';
 import { buildInterior } from './interior.js';
 import { Instinct } from './instinct.js';
 import { Hides } from './hides.js';
+import { settings } from '../settings.js';
 import { dist } from '@shared/rng.js';
 import { surfaceY, buildingAt } from '@shared/levels.js';
 
@@ -156,6 +157,11 @@ export class GameView {
     const mouseObj = focusP?.state === 'mouse' ? this.mice.items.get(focusP.id) : null;
     const focusPos = mouseObj ? mouseObj.position : fch?.root.position;
     const fp = this.firstPerson(ctl);
+    // Zoom (hold B): the field of view narrows to study details far away in the map
+    this.zk = (this.zk || 0) + ((ctl.down?.('zoom') ? 1 : 0) - (this.zk || 0)) * Math.min(1, dt * 9);
+    const zfov = settings().video.fov / (1 + this.zk * 1.7), cam3 = this.stage.camera;
+    if (Math.abs(cam3.fov - zfov) > 0.02) { cam3.fov = zfov; cam3.updateProjectionMatrix(); }
+    this.stage.sky.ring.visible = true; // (the menus hide the distant treeline; the match shows it)
     if (focusPos) this.cam.update(dt, focusPos, focusP, ctl, this.map, fp);
     this.vm.update(dt, me, this.cam, this.snap, fp);
     // First-person monster footsteps, on the camera's footfalls (heavier when running).

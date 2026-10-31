@@ -23,7 +23,7 @@ export class Input {
     window.addEventListener('mousemove', (e) => {
       if (!this.enabled || document.pointerLockElement !== canvas) return;
       if (this.quickOpen) { this.onWheelMove?.(e.movementX, e.movementY); return; } // the wheel takes the mouse
-      const c = settings().controls, sens = 0.0024 * c.sensitivity;
+      const c = settings().controls, sens = 0.0024 * c.sensitivity * (this.down('zoom') ? 0.4 : 1); // steadier while zoomed
       this.yaw -= e.movementX * sens;
       this.pitch = Math.max(-1.1, Math.min(0.9, this.pitch - e.movementY * sens * (c.invertY ? -1 : 1)));
     });
@@ -72,8 +72,8 @@ export class Input {
   mouseBtn(e, down) {
     if (!this.enabled) return;
     if (down) this.lock();
-    if (e.button === 0) { this.mouse.l = down; if (down) { this.actions.push({ t: 'attack' }); this.spectateNext = true; } }
-    if (e.button === 2) { if (!down && this.mouse.r) this.actions.push({ t: 'aimRelease' }); this.mouse.r = down; }
+    if (e.button === 0) { this.mouse.l = down; if (down) { this.actions.push({ t: this.mouse.r ? 'aimRelease' : 'attack' }); this.spectateNext = true; } } // (while aiming, the left button shoots)
+    if (e.button === 2) { if (!down && this.mouse.r) this.actions.push({ t: 'aimCancel' }); this.mouse.r = down; }
   }
 
   sample() {
@@ -94,6 +94,7 @@ export class Input {
       interact: this.down('interact'),
       heal: this.down('heal'),
       aim: this.mouse.r,
+      zoom: this.down('zoom'),
       actions: this.actions.splice(0),
     };
   }

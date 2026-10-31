@@ -4,8 +4,8 @@
 // locked to the camera's footsteps, swing/lunge, trident aim & throw, halberd thrust (puppet
 // string), chainsaw rev, carrying, stunned and hold-E actions.
 import * as THREE from 'three';
-import { makeWeapon } from './items.js';
-import { WEAPON, HOLD, holdQuat, sample, SWING, SAW_SWING, AIM, THROW, LASH } from './viewmodelParts.js';
+import { cloneWeapon } from './assets.js';
+import { HOLD, holdQuat, sample, SWING, SAW_SWING, AIM, THROW, LASH } from './viewmodelParts.js';
 
 export class ViewModel {
   constructor(stage) {
@@ -15,17 +15,19 @@ export class ViewModel {
     this.hemi = new THREE.HemisphereLight(0x7080a8, 0x1a1410, 1.1); this.scene.add(this.hemi);
     this.key = new THREE.DirectionalLight(0xb4c6f4, 1.6); this.key.position.set(-1, 2, 1); this.scene.add(this.key);
     this.pivot = new THREE.Group(); this.scene.add(this.pivot);   // the hidden hand
-    this.monster = null; this.t = 0;
+    this.wid = null; this.t = 0;
     this.swingT = 0; this.throwT = 0; this.lashT = 0; this.hitT = 0;
     this.aimK = 0; this.carryK = 0; this.actK = 0; this.runK = 0;
   }
 
-  build(monster) {
-    this.monster = monster;
-    this.pivot.clear();
-    this.weaponType = WEAPON[monster] || 'axe';
+  // The monster's chosen weapon (any weapon, any monster).
+  build(weaponId) {
+    this.wid = weaponId;
+    this.pivot.clear(); this.weapon = null;
+    this.weaponType = HOLD[weaponId] ? weaponId : 'axe';
     this.hold = HOLD[this.weaponType];
-    this.weapon = makeWeapon(this.weaponType);
+    this.weapon = cloneWeapon(this.weaponType);
+    if (!this.weapon) { this.wid = null; return; } // models not loaded yet: try again next frame
     const vl = []; this.weapon.traverse((o) => { if (o.isVLight) vl.push(o); o.castShadow = false; });
     vl.forEach((o) => o.dispose());
     const h = this.hold, aim = new THREE.Group();
@@ -47,15 +49,16 @@ export class ViewModel {
     pass.enabled = !!enabled && !!me;
     if (!pass.enabled) return;
     pass.scene = this.scene; pass.camera = this.camera;
-    if (this.monster !== me.monster) this.build(me.monster);
+    if (this.wid !== (me.weapon || 'axe')) this.build(me.weapon || 'axe');
+    if (!this.weapon) { this.pivot.visible = false; return; }
     this.camera.aspect = this.stage.camera.aspect; this.camera.updateProjectionMatrix();
     this.t += dt;
     const k = (v, rate) => Math.min(1, dt * rate) * v;
     const disguised = me.monster === 'mimic' && !!me.disguise;
-    const thrown = this.weaponType === 'trident' && (s.projectiles || []).length > 0;
+    const thrown = me.monster === 'stalker' && (s.projectiles || []).length > 0; // the trident is in the air
     this.pivot.visible = !disguised && !thrown;
     const black = s.blackout ? (me.monster === 'puppeteer' ? 0.6 : 0.25) : 1;
-    this.hemi.intensity = 0.5 * black; this.key.intensity = 0.9 * black;
+    this.hemi.intensity = 1.5 * black; this.key.intensity = 2.4 * black;
 
     const [px, py, pz] = this.hold.pivot;
     const P = { px, py, pz, rx: 0, ry: 0, rz: 0 };
@@ -75,7 +78,7 @@ export class ViewModel {
     // Aim: the Stalker raises the trident over the shoulder; the Puppeteer levels the halberd.
     this.aimK += k((me.aiming ? 1 : 0) - this.aimK, 10);
     if (this.aimK > 0.01) {
-      if (this.weaponType === 'trident') add({ ...AIM, rx: AIM.rx + Math.sin(this.t * 30) * 0.008 }, this.aimK);
+      if (me.monster === 'stalker') add({ ...AIM, rx: AIM.rx + Math.sin(this.t * 30) * 0.008 }, this.aimK);
       else add({ px: -0.06, py: 0.05, pz: -0.04, rx: -0.25 }, this.aimK);
     }
     // Carrying a survivor: the weapon drops low and out of the way.

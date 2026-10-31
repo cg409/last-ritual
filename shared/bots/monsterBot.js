@@ -7,6 +7,7 @@
 import { BotBase } from './botBase.js';
 import { dist, angleTo } from '../rng.js';
 import { monsterStats } from '../monster.js';
+import { weaponStats } from '../weapons.js';
 import { useSpecials } from './monsterSpecials.js';
 import { palletNear } from '../pallets.js';
 import { Notice, inSight } from './perception.js';
@@ -150,7 +151,7 @@ export class MonsterBot extends BotBase {
     const tx = tgt.x + Math.sin(tgt.rot) * tgt.speed * lead * 0.4, tz = tgt.z + Math.cos(tgt.rot) * tgt.speed * lead * 0.4;
     this.goTo(tx, tz, out, 0.2, tgt.level | 0);
     out.run = true; // sprint during a chase
-    if (m.monster === 'ravager' && d < 9 && tgt.health <= 1 && m.sawUntil < g.time) this.act({ t: 'rev' });
+    if (weaponStats(m.weapon, m.weaponLvl).rev && d < 9 && tgt.health <= 1 && m.sawUntil < g.time) this.act({ t: 'rev' });
     if (d < st.range * 0.9 && m.attackCdUntil < g.time) {
       this.face(tgt.x, tgt.z, out);
       if (g.random() < 0.35 + this.skill * 0.4) this.act({ t: 'attack' }); // missed timings happen

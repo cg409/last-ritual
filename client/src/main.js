@@ -2,6 +2,7 @@
 import './style.css';
 import './screens.css';
 import './hud.css';
+import './loadout.css';
 import './mobile.css';
 import * as THREE from 'three';
 import { Stage } from './render/stage.js';
@@ -26,6 +27,8 @@ import { leaderboardScreen } from './ui/leaderboard.js';
 import { autoGraphics } from './ui/gfxChooser.js';
 import { installScreen } from './ui/install.js';
 import { reportScreen } from './ui/report.js';
+import { LoadoutUI } from './ui/loadout.js';
+import { openMailbox, openLetter, pendingForced, refreshMailBadge } from './ui/mail.js';
 import { sfx } from './sfx.js';
 import { isTouch as touchDevice, goFullscreen } from './touch.js';
 import { playClip, readyCount } from './sounds.js';
@@ -34,7 +37,7 @@ import { authScreen } from './ui/account.js';
 import { profileScreen } from './ui/profileScreen.js';
 import { settingsPanel } from './ui/settingsMenu.js';
 import { show } from './ui/dom.js';
-import { loadModels, ALL_MODELS, setAnisotropy, getModel } from './render/assets.js';
+import { loadModels, loadWeapons, ALL_MODELS, setAnisotropy, getModel } from './render/assets.js';
 import { loadCrowAssets } from './render/crow.js';
 import { graphics } from './settings.js';
 
@@ -94,25 +97,23 @@ function toMenu() {
     onSingle: singleLobby, onMulti: () => mp.multiEntry(), onHow: () => howTo(toMenu), onLoadout: loadoutScreen,
     requests: presence.requests, onLeaderboard: () => leaderboardScreen({ onBack: toMenu }),
     onReport: () => reportScreen({ onBack: toMenu }),
+    onSignIn: () => authScreen({ onDone: toMenu }),
+    onMail: () => openMailbox(refreshMailBadge),
     onFriends: () => friendsScreen({ onBack: toMenu, onSignIn: () => authScreen({ onDone: toMenu }), onJoin: (code) => mp.multiEntry('', code) }),
     onProfile: () => profileScreen({ onBack: toMenu, onSignIn: () => authScreen({ onDone: toMenu }) }),
     onSettings: () => { const ui = show('<div class="screen" id="setwrap"></div>'); settingsPanel(ui.querySelector('#setwrap'), toMenu); },
   });
   celebrate();
+  // The first time you are back at the menu after a lobby or a match, the first mail pops up and has to be read to the end.
+  if (app.visitedLobby && pendingForced()) setTimeout(() => { if (!app.match && document.querySelector('.menuv2') && !document.querySelector('.mail-letter')) openLetter(pendingForced(), { force: true, onClose: refreshMailBadge }); }, 900);
 }
 
-// Loadout from the main menu: you alone in the circle with the loadout drawer open.
+// Loadout from the main menu: two tabs - Player (survivor on the right, menu on the left) and Monster (monster on the left, menu on the right).
 function loadoutScreen() {
-  const me = { id: 'you', name: app.name || 'Survivor', ready: true, ...loadoutPrefs() };
   backdrop('lobby');
-  const state = () => ({ title: 'Loadout', members: [me], myId: 'you', hostId: 'you', chat: [] });
-  const ui = app.lobbyUI = new LobbyUI({
-    mode: 'loadout', scene: app.lobbyScene,
-    onUpdate: (u) => { Object.assign(me, u); ui.render(state()); },
-    onLeave: () => { app.lobbyUI = null; toMenu(); },
-    onStart: () => {}, onChat: () => {},
-  });
-  ui.render(state());
+  app.loadoutUI?.dispose();
+  const ui = app.loadoutUI = new LoadoutUI({ scene: app.lobbyScene, onLeave: () => { ui.dispose(); app.loadoutUI = null; toMenu(); } });
+  ui.open('player');
 }
 
 // Singleplayer: you + 4 bots that play by the same rules. The bots chat back now and then.
@@ -122,6 +123,7 @@ const BOT_LINES = [
   'Run when your shadow flickers.', 'Pallets. Remember the pallets.', 'I hope it\'s not me.', '…',
 ];
 function singleLobby() {
+  app.visitedLobby = true;
   const me = { id: 'you', name: app.name || 'Survivor', ready: true, ...loadoutPrefs() };
   const bots = BOT_NAMES.slice(0, MAX_PLAYERS - 1).map((n, i) => ({
     id: `bot${i}`, name: n, isBot: true, ready: true, level: 1 + ((i * 17 + 5) % 40),
@@ -163,7 +165,7 @@ async function startMatch(session, myId, back) {
   const flushMatch = () => { if (flushed || !app.match) return; flushed = true; const m = app.match; if (m.lastMe && m.snap) applyMatch(m.abandonResult(), { ...m.lastMe, cursedChest: !!m.gotCursed }); syncNow(); };
   window.addEventListener('pagehide', flushMatch);
   const match = new Match({ stage, input, session, myId, onEnd: (result, _id, lastMe) => {
-    app.match = null;
+    app.match = null; app.visitedLobby = true;
     if (result.left && !(session instanceof LocalSession)) { app.net?.emit('lobby:leave'); app.lobby = null; app.lobbyUI = null; } // leaving mid-match: a bot takes your place
     backdrop('menu'); startAmbience(0.6);
     window.removeEventListener('pagehide', flushMatch);
@@ -235,7 +237,7 @@ function setupDevice() {
       loadModels(EARLY, (k) => { b = k; ld.progress(a * 0.75 + b * 0.25); }),
       loadCrowAssets(),
     ]);
-    app.lateModels = loadModels(ALL_MODELS.filter((id) => !EARLY.includes(id)));
+    app.lateModels = Promise.all([loadModels(ALL_MODELS.filter((id) => !EARLY.includes(id))), loadWeapons()]);
   } catch (e) { ld.text('Failed to load assets: ' + e.message); return; }
   if (new URLSearchParams(location.search).has('debug')) window.__hv = { Character, stage, getModel, THREE, buildTrips, Pallets, app, sounds: { playClip, levelUpAnim, readyCount, getCtx } };
   app.menuScene = new MenuScene(stage);

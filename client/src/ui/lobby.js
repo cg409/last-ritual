@@ -6,6 +6,9 @@ import { SKINS, skinLabel, MONSTERS, MONSTER_IDS, TRAPS, TRAP_IDS, PERKS, PERK_I
 import { show, on, q, esc, hex } from './dom.js';
 import { sfx } from '../audio.js';
 import { gameTitle } from '../title.js';
+import { weaponPanelHtml } from './loadout.js';
+import { settingsPanel } from './settingsMenu.js';
+import { WEAPONS } from '@shared/constants.js';
 import { account, isUnlocked, levelOf, unlock, upgrade, togglePerk, saveProfile, loadoutPrefs } from '../profile.js';
 
 // The "ghost face" loadout button icon.
@@ -37,6 +40,15 @@ export function resolveSkins(members) {
   });
 }
 
+// Settings on top of the lobby (the gear icon, top right).
+function openSettingsOverlay() {
+  document.querySelector('.set-overlay')?.remove();
+  const o = document.createElement('div'); o.className = 'set-overlay';
+  document.body.appendChild(o);
+  settingsPanel(o, () => o.remove());
+  o.addEventListener('pointerdown', (e) => { if (e.target === o) o.remove(); });
+}
+
 export class LobbyUI {
   // opts: { mode: 'single'|'multi', scene, onUpdate, onReady, onStart, onLeave, onChat }
   constructor(opts) { this.o = opts; this.drawer = null; this.el = null; this.chatN = -1; this.state = null; }
@@ -60,8 +72,10 @@ export class LobbyUI {
           <button class="lb-ghost" id="lb-ghost" title="Loadout: character, monster, perks, traps">${GHOST_SVG}<span>Loadout</span></button>
         </div>
         <aside class="lb-drawer" id="lb-drawer"></aside>
+        <button class="lb-gear" id="lb-gear" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M19.4 13a7.9 7.9 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.3 7.3 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6c-.6.3-1.2.6-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.9 7.9 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.3.4.5.4h4c.2 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg></button>
       </div>`);
     this.el = ui.querySelector('.lobbyv2');
+    on('#lb-gear', 'click', () => { sfx.click(); openSettingsOverlay(); });
     on('#lb-ghost', 'click', () => { sfx.click(); this.toggle(this.drawer ? this.drawer : this.lastTab || 'char'); });
     const inp = q('#lb-in');
     inp.addEventListener('keydown', (e) => {
@@ -113,9 +127,10 @@ export class LobbyUI {
       rows.push(`<div class="seat ${you ? 'me' : ''}">
         <div class="sw" style="background:linear-gradient(135deg,${hex(sk.cloth)} 55%,${hex(sk.accent)} 55%)"></div>
         <div class="who"><div class="nm">${esc(m.name)}${you ? ' <span>(you)</span>' : ''}</div><div class="dt">${detail}</div></div>
-        <div class="tg ${tag.toLowerCase()}">${tag}</div></div>`);
+        <div class="tg ${tag.toLowerCase()}">${tag}</div>${multi && isHost && !you && !m.isBot ? `<button class="seat-host" data-host="${esc(m.id)}" title="Make ${esc(m.name)} the host">Make host</button>` : ''}</div>`);
     }
     q('#lb-seats').innerHTML = rows.join('');
+    on('[data-host]', 'click', (_, el) => { sfx.click(); this.o.onHost?.(el.dataset.host); });
 
     // actions
     const ready = multi && !isHost ? `<button class="btn small" id="lb-ready">${me.ready ? 'Not ready' : 'Ready'}</button>` : '';
@@ -158,9 +173,10 @@ export class LobbyUI {
     const pv = this.drawer === 'mon' ? 'monster' : this.drawer === 'traps' ? 'trap' : null;
     const previewMon = this.preview?.kind === 'monster' ? this.preview.id : me.monsterPref;
     const previewTrap = this.preview?.kind === 'trap' ? this.preview.id : me.trap;
+    const previewWeapon = this.preview?.kind === 'weapon' ? this.preview.id : me.weapon;
     this.o.scene.setLineup(Array.from({ length: MAX_PLAYERS }, (_, i) => members[i]
       ? { skin: i === myIdx && this.preview?.kind === 'skin' ? this.preview.id : skins[i], monster: i === myIdx ? previewMon : members[i].monsterPref || MONSTER_IDS[0],
-        showMonster: i === myIdx && pv === 'monster', trap: i === myIdx && pv === 'trap' ? previewTrap : null } : null));
+        showMonster: i === myIdx && pv === 'monster', weapon: i === myIdx ? previewWeapon : null, trap: i === myIdx && pv === 'trap' ? previewTrap : null } : null));
     this.names = Array.from({ length: MAX_PLAYERS }, (_, i) => members[i] ? { name: members[i].name, you: i === myIdx, bot: members[i].isBot,
       level: members[i].level, sub: i === myIdx && pv === 'monster' ? MONSTERS[previewMon]?.name : i === myIdx && pv === 'trap' ? TRAPS[previewTrap]?.name
         : skinLabel(skinById[i === myIdx && this.preview?.kind === 'skin' ? this.preview.id : skins[i]]) } : null);
@@ -179,7 +195,7 @@ export class LobbyUI {
     const P = account.profile, L = P.loadout;
     const tabs = [['char', 'Character'], ['mon', 'Monster'], ['perks', 'Perks'], ['traps', 'Traps']];
     const lockBtn = (kind, id) => {
-      const cost = UNLOCK_COST[kind.slice(0, -1)];
+      const cost = kind === 'weapons' ? WEAPONS[id].cost : UNLOCK_COST[kind.slice(0, -1)];
       return `<button class="dr-buy ${P.shards < cost ? 'poor' : ''}" data-unlock="${kind}:${id}" ${P.shards < cost ? 'disabled' : ''}>Unlock ◆ ${cost}</button>`;
     };
     const upBtn = (kind, id) => {
@@ -215,6 +231,7 @@ export class LobbyUI {
           <div class="dr-mon">${esc(mon.name)}</div><i>${esc(mon.lore)}</i>
           <b>Special</b>${esc(mon.special)}<b>Ability</b>${esc(mon.passive)}<b>Weakness</b>${esc(mon.weakness)}<b>Counterplay</b>${esc(mon.counter)}
         </div>
+        <div class="dr-h small">Weapon <small style="color:#7a7066">any weapon fits any monster</small></div>${weaponPanelHtml(this.preview?.kind === 'weapon' ? this.preview.id : L.weapon)}
         ${open ? '' : `<div class="dr-lockrow"><span>Locked — unlock with soul shards</span>${lockBtn('monsters', mon.id)}</div>`}
         <div class="dr-note">If the curse picks you, you become this monster. Your figure in the circle shows it.</div>`;
     } else if (this.drawer === 'perks') {
@@ -267,7 +284,7 @@ export class LobbyUI {
     const unlockClick = (_, el) => {
       const [kind, id] = el.dataset.unlock.split(':');
       if (unlock(kind, id)) {
-        sfx.key(); if (kind === 'monsters') L.monster = id; if (kind === 'traps') L.trap = id;
+        sfx.key(); if (kind === 'monsters') L.monster = id; if (kind === 'traps') L.trap = id; if (kind === 'weapons') { L.weapon = id; this.preview = null; }
         if (kind === 'skins') { L.skin = id; this.pinned = false; this.preview = null; saveProfile(); this.o.onUpdate({ skin: id }); return; }
         saveProfile(); this.preview = kind === 'perks' ? { kind: 'perk', id } : null; sync();
       }
@@ -276,6 +293,11 @@ export class LobbyUI {
       sfx.click(); const id = el.dataset.mon;
       if (isUnlocked('monsters', id)) { this.preview = null; L.monster = id; saveProfile(); sync(); } else { this.preview = { kind: 'monster', id }; this.render(this.state); }
     }, d);
+    on('[data-weapon]', 'click', (_, el) => {
+      sfx.click(); const id = el.dataset.weapon;
+      if (isUnlocked('weapons', id)) { this.preview = null; L.weapon = id; saveProfile(); sync(); } else { this.preview = { kind: 'weapon', id }; this.render(this.state); }
+    }, d);
+    on('[data-equipw]', 'click', (_, el) => { sfx.click(); this.preview = null; L.weapon = el.dataset.equipw; saveProfile(); sync(); }, d);
     on('[data-trap]', 'click', (_, el) => {
       sfx.click(); const id = el.dataset.trap;
       if (isUnlocked('traps', id)) { this.preview = null; L.trap = id; saveProfile(); sync(); } else { this.preview = { kind: 'trap', id }; this.render(this.state); }

@@ -6,6 +6,7 @@
 import { dist } from './rng.js';
 import { DROP_LOG } from './landmarks.js';
 
+import { weaponStats } from './weapons.js';
 export const PALLET = { reach: 1.7, stun: 2.5, breakTime: 2.4, h: 0.85 };
 
 // Footprint of a dropped pallet as a collision rect (spans the doorway gap).
@@ -75,7 +76,7 @@ export function breakPallet(g, m, dt) {
   const pal = g.state.pallets.find((p) => p.state === 'down' && p.kind !== 'log' && dist(m.x, m.z, p.x, p.z) < 2.0);
   if (!pal) return false;
   if (m.act !== 'smash') { m.act = 'smash'; m.actT = 0; }
-  m.actT += dt / PALLET.breakTime;
+  m.actT += dt / (PALLET.breakTime * weaponStats(m.weapon, m.weaponLvl).brk); // crowbars and heavy weapons smash faster
   if (m.actT >= 1) {
     m.act = null; m.actT = 0; pal.state = 'broken';
     rebuildDyn(g);

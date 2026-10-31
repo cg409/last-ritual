@@ -1,7 +1,7 @@
 // Player profile & account. Signed-in players keep their profile on the server (synced after every
 // change); guests keep it in this browser. Holds level/XP (max 100), ritual coins & soul shards,
 // unlocks and upgrade levels, the loadout, lifetime stats and achievements.
-import { STARTER, MAX_LEVEL, UNLOCK_COST, UPGRADE_COST, MAX_PERKS, PERKS, SKINS } from '@shared/constants.js';
+import { STARTER, MAX_LEVEL, UNLOCK_COST, UPGRADE_COST, MAX_PERKS, PERKS, SKINS, WEAPONS, DEFAULT_WEAPON } from '@shared/constants.js';
 import { SERVER_URL, SERVER_MISCONFIGURED } from './session.js';
 
 const GUEST_KEY = 'tlr-profile-guest', AUTH_KEY = 'tlr-auth';
@@ -93,9 +93,9 @@ export async function fetchAchievementStats() {
 export function defaultProfile(name = 'Survivor') {
   return {
     v: 1, name, level: 1, xp: 0, coins: 150, shards: 10,
-    unlocked: { monsters: [...STARTER.monsters], traps: [...STARTER.traps], perks: [...STARTER.perks], skins: [...STARTER.skins] },
-    perkLv: {}, trapLv: {},
-    loadout: { skin: SKINS[0].id, monster: STARTER.monsters[0], trap: STARTER.traps[0], perks: [STARTER.perks[0]] },
+    unlocked: { monsters: [...STARTER.monsters], traps: [...STARTER.traps], perks: [...STARTER.perks], skins: [...STARTER.skins], weapons: [...STARTER.weapons] },
+    perkLv: {}, trapLv: {}, weaponLv: {},
+    loadout: { skin: SKINS[0].id, monster: STARTER.monsters[0], trap: STARTER.traps[0], weapon: DEFAULT_WEAPON, perks: [STARTER.perks[0]] },
     achievements: {}, // id -> unlock timestamp
     stats: { matches: 0, escapes: 0, deaths: 0, enchants: 0, chests: 0, cursedChests: 0, rescues: 0, heals: 0, hooks: 0, kills: 0, monsterWins: 0 },
   };
@@ -104,12 +104,13 @@ function normalize(p, name) {
   const d = defaultProfile(name);
   const out = { ...d, ...(p || {}) };
   out.unlocked = { ...d.unlocked, ...(p?.unlocked || {}) };
-  for (const k of ['monsters', 'traps', 'perks', 'skins']) out.unlocked[k] = [...new Set([...STARTER[k], ...(out.unlocked[k] || [])])];
+  for (const k of ['monsters', 'traps', 'perks', 'skins', 'weapons']) out.unlocked[k] = [...new Set([...STARTER[k], ...(out.unlocked[k] || [])])];
   out.loadout = { ...d.loadout, ...(p?.loadout || {}) };
   // retired characters (or one no longer owned) fall back to Alex
   if (!SKINS.some((s) => s.id === out.loadout.skin) || !out.unlocked.skins.includes(out.loadout.skin)) out.loadout.skin = SKINS[0].id;
   out.stats = { ...d.stats, ...(p?.stats || {}) };
-  out.perkLv = { ...(p?.perkLv || {}) }; out.trapLv = { ...(p?.trapLv || {}) }; out.achievements = { ...(p?.achievements || {}) };
+  out.perkLv = { ...(p?.perkLv || {}) }; out.trapLv = { ...(p?.trapLv || {}) }; out.weaponLv = { ...(p?.weaponLv || {}) };
+  if (!WEAPONS[out.loadout.weapon] || !out.unlocked.weapons.includes(out.loadout.weapon)) out.loadout.weapon = DEFAULT_WEAPON; out.achievements = { ...(p?.achievements || {}) };
   return out;
 }
 
@@ -252,16 +253,16 @@ export function applyMatch(result, me) {
 // ---------- unlocks & upgrades ----------
 export const isUnlocked = (kind, id) => account.profile.unlocked[kind].includes(id);
 export function unlock(kind, id) {
-  const p = account.profile, cost = UNLOCK_COST[kind.slice(0, -1)];
+  const p = account.profile, cost = kind === 'weapons' ? WEAPONS[id]?.cost ?? 99 : UNLOCK_COST[kind.slice(0, -1)];
   if (isUnlocked(kind, id) || p.shards < cost) return false;
   p.shards -= cost; p.unlocked[kind].push(id); saveProfile();
   return true;
 }
-export const levelOf = (kind, id) => (kind === 'perks' ? account.profile.perkLv[id] : account.profile.trapLv[id]) || 1;
+export const levelOf = (kind, id) => (kind === 'perks' ? account.profile.perkLv[id] : kind === 'weapons' ? account.profile.weaponLv[id] : account.profile.trapLv[id]) || 1;
 export function upgrade(kind, id) {
   const p = account.profile, lv = levelOf(kind, id), cost = UPGRADE_COST[lv];
   if (lv >= 3 || !isUnlocked(kind, id) || p.coins < cost) return false;
-  p.coins -= cost; (kind === 'perks' ? p.perkLv : p.trapLv)[id] = lv + 1; saveProfile();
+  p.coins -= cost; (kind === 'perks' ? p.perkLv : kind === 'weapons' ? p.weaponLv : p.trapLv)[id] = lv + 1; saveProfile();
   return true;
 }
 export function togglePerk(id) {
@@ -275,6 +276,7 @@ export function loadoutPrefs() {
   const p = account.profile, l = p.loadout;
   return {
     skin: l.skin, monsterPref: isUnlocked('monsters', l.monster) ? l.monster : STARTER.monsters[0],
+    weapon: isUnlocked('weapons', l.weapon) ? l.weapon : DEFAULT_WEAPON, weaponLvl: levelOf('weapons', isUnlocked('weapons', l.weapon) ? l.weapon : DEFAULT_WEAPON),
     trap: isUnlocked('traps', l.trap) ? l.trap : STARTER.traps[0], trapLvl: levelOf('traps', l.trap),
     perks: l.perks.filter((id) => PERKS[id] && isUnlocked('perks', id)).map((id) => ({ id, lvl: levelOf('perks', id) })), level: p.level,
   };

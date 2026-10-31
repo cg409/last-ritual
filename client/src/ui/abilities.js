@@ -1,5 +1,5 @@
 // Monster ability bar (cooldowns, sealed / weakened state).
-import { MONSTERS } from '@shared/constants.js';
+import { MONSTERS, WEAPONS } from '@shared/constants.js';
 
 export function abilitiesHtml(s, me) {
   const sealed = s.phase >= 1;
@@ -11,6 +11,6 @@ export function abilitiesHtml(s, me) {
   if (me.monster === 'mimic' && me.disguise) html += box('VIEW', 'V', 0, false);
   html += box(`TRAPS ×${me.traps}`, 'T', 0, me.traps <= 0);
   const note = s.phase >= 2 ? '<span style="color:#b07ad1">Weakened: slower, shorter reach</span>'
-    : sealed ? '<span style="color:#b07ad1">Special sealed by the first tomb</span>' : MONSTERS[me.monster].name;
+    : sealed ? '<span style="color:#b07ad1">Special sealed by the first tomb</span>' : MONSTERS[me.monster].name + (WEAPONS[me.weapon] ? ` <small style="opacity:.7">${WEAPONS[me.weapon].name}</small>` : '');
   return html + `<div class="hint" style="margin-top:6px">${note}</div>`;
 }

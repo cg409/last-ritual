@@ -159,7 +159,7 @@ export class Hud {
     this.set('spect', me.state === 'mouse' ? 'YOU ARE A MOUSE · <span class="key">SHIFT</span> scurry · <span class="key">SPACE</span> leap · <span class="key">TAB</span> spectate survivors · <span class="key">LMB</span> next'
       : me.state === 'escaped' ? 'YOU ESCAPED · <span class="key">LMB</span> next survivor' : '');
     this.set('help', isTouch ? '' : me.role === 'monster'
-      ? 'SHIFT run · LMB lunge attack · Q special · RMB aim · T trap · hold E pick up / hang / damage · Z drop' + (mon.monster === 'ravager' ? ' · R chainsaw' : '') + ' · ENTER chat'
+      ? 'SHIFT run · LMB lunge attack · Q special · RMB aim · LMB shoot · T trap · hold E pick up / hang / damage · Z drop' + (mon.weapon === 'chainsaw' ? ' · R rev the chainsaw' : '') + ' · ENTER chat'
       : 'SHIFT run · SPACE jump / vault windows · C crouch · X crawl · hold E interact / open chests · hold H heal · F flashlight · 2 string · 3 eye · Q quick message · ENTER chat');
     this.set('inv', me.role === 'survivor' && me.inv && !['mouse', 'escaped'].includes(me.state) ? invHtml(me) : '');
     this.renderChat();

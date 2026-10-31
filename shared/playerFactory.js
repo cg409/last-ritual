@@ -1,4 +1,5 @@
 import { SURVIVOR, MONSTER_BASE, PERKS, MAX_PERKS, FLASHLIGHT, TRAPS } from './constants.js';
+import { WEAPONS, DEFAULT_WEAPON } from './weapons.js';
 
 // Weighted random monster choice: real players are 3x more likely than bots.
 export function chooseMonster(roster, rng) {
@@ -31,6 +32,7 @@ export function makePlayer(r, isMonster, sp, skin, monster) {
     slowUntil: 0, stuckUntil: 0, revealUntil: 0, boostUntil: 0, fallUntil: 0, fallT0: 0, tripImmuneUntil: 0,
     hookT: 0, downT: 0, carrier: null, hookId: null, wiggle: 0,
     carrying: null, specialCdUntil: 0, attackCdUntil: 0, stunUntil: 0,
+    weapon: isMonster ? (WEAPONS[r.weapon] ? r.weapon : DEFAULT_WEAPON) : null, weaponLvl: Math.max(1, Math.min(3, r.weaponLvl | 0 || 1)),
     traps: isMonster ? MONSTER_BASE.traps : 0, trap: TRAPS[r.trap] ? r.trap : 'bear',
     disguise: null, aiming: false, aimStartT: 0, sawUntil: 0, revUntil: 0,
     trailUntil: 0, tridentCdUntil: 0, stringCdUntil: 0, auraUntil: 0, lungeUntil: 0, lungeHit: false, climbUntil: 0,

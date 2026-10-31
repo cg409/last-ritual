@@ -70,8 +70,8 @@ export const MAX_PERKS = 2;
 
 // Progression: what is free from the start, and what unlocking / upgrading costs.
 export const STARTER = { monsters: ['mimic', 'wanderer', 'puppeteer'], traps: ['bear', 'spike', 'poison'], perks: ['adrenaline', 'ritualist', 'medic'],
-  skins: ['alex', 'alex-crimson', 'alex-navy', 'alex-forest', 'alex-mustard'] };
-export const UNLOCK_COST = { monster: 32, trap: 16, perk: 20, skin: 20 };          // soul shards
+  skins: ['alex', 'alex-crimson', 'alex-navy', 'alex-forest', 'alex-mustard'], weapons: ['axe', 'machete'] };
+export const UNLOCK_COST = { monster: 32, trap: 16, perk: 20, skin: 35 };          // soul shards (a weapon costs what its entry in weapons.js says)
 export const UPGRADE_COST = [0, 200, 500];                                  // ritual coins: to level 2, to level 3
 export const MAX_LEVEL = 100;
 
@@ -87,3 +87,4 @@ export const FLASHLIGHT = { full: 90, battery: 45 }; // seconds of light
 
 export const BOT_NAMES = ['Hollis', 'Wren', 'Ottilie', 'Caspian', 'Mercy', 'Jory', 'Tamsin', 'Ezra', 'Isolde', 'Fenn'];
 export { MONSTERS, MONSTER_IDS } from './monsters.js';
+export { WEAPONS, WEAPON_IDS, DEFAULT_WEAPON, weaponStats, MAX_WEAPON_LEVEL } from './weapons.js';

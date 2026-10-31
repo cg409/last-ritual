@@ -87,6 +87,7 @@ export function setupMultiplayer(app, { toMenu, startMatch, backdrop }) {
 
   function renderLobby() {
     const l = app.lobby; if (!l || app.match) return;
+    app.visitedLobby = true;
     if (presence.code !== l.code || presence.where !== 'lobby') setPresence('lobby', l.code);
     if (!app.lobbyUI || app.lobbyUI.o.mode !== 'multi') {
       backdrop('lobby');
@@ -96,6 +97,7 @@ export function setupMultiplayer(app, { toMenu, startMatch, backdrop }) {
         onUpdate: (u) => { app.net.emit('lobby:update', u); patchMe(u); },
         onReady: (r) => { app.net.emit('lobby:ready', r); patchMe({ ready: r }); },
         onInvite: () => invitePicker({ send: (to) => app.net.call('invite:send', { to }) }),
+        onHost: (id) => app.net.emit('lobby:host', id),
         onPrivate: (v) => { app.net.emit('lobby:private', v); app.lobby.private = v; renderLobby(); },
         onStart: () => app.net.emit('lobby:start'),
         onChat: (t) => app.net.emit('lobby:chat', t),

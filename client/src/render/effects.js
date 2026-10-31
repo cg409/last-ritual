@@ -1,6 +1,6 @@
 // Particle & mesh effects: traps, trident, lightning bolts, smoke puffs, glowing footprints.
 import * as THREE from 'three';
-import { makeWeapon } from './items.js';
+import { cloneWeapon } from './assets.js';
 import { makeFootprint } from './textures.js';
 import { vlight } from './lights.js';
 
@@ -52,9 +52,12 @@ function softDot() {
   return _soft;
 }
 
-export function makeTrident() {
-  const g = new THREE.Group();
-  const w = makeWeapon('trident'); w.rotation.x = Math.PI / 2; w.position.z = -0.9; g.add(w);
+// The Stalker's special now throws the weapon he carries (any weapon), tumbling end over end; the origin is its centre, +Z is the flight direction.
+export function makeThrown(weaponId) {
+  const g = new THREE.Group(), pivot = new THREE.Group(); g.add(pivot);
+  const w = cloneWeapon(weaponId || 'axe');
+  if (w) { w.children[0].position.y = -w.userData.head / 2; w.scale.setScalar(1.15); pivot.add(w); }
+  g.userData.pivot = pivot;
   g.add(vlight(0x6fe0ff, 1.2, 4, 2));
   return g;
 }

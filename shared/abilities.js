@@ -9,7 +9,7 @@ export function useSpecial(g, m, a = {}) {
   switch (m.monster) {
     case 'mimic': {
       // Q again: drop the disguise at once — the monster is back (the cooldown starts now).
-      if (m.disguise) { m.disguise = null; m.specialCdUntil = g.time + 8; g.emit({ t: 'reveal', id: m.id, x: m.x, z: m.z }); return; }
+      if (m.disguise) { m.disguise = null; m.specialCdUntil = g.time + 20; g.emit({ t: 'reveal', id: m.id, x: m.x, z: m.z }); return; }
       const pool = g.survivors().filter((p) => p.state !== 'mouse' && p.state !== 'escaped');
       const target = pool.find((p) => p.id === a.target) || pool[Math.floor(g.random() * pool.length)];
       if (!target) return;
@@ -65,7 +65,7 @@ export function updateAiming(g, m, inp, st) {
 export function onAimRelease(g, m, st) {
   if (!m.aiming) return;
   m.aiming = false;
-  if (g.time - m.aimStartT < 0.35) return; // tap = cancel
+  if (g.time - m.aimStartT < 0.2) return; // fired the instant the aim began: ignore
   if (m.monster === 'stalker') {
     if (st.specialSealed) return;
     m.tridentCdUntil = g.time + MONSTERS.stalker.specialCd;

@@ -349,3 +349,56 @@ textarea.field { background: #050303; color: #e6dccb; border: 1px solid #4a2c2c;
 .menuv2 > .panel { position: relative; z-index: 3; }
 .mm-rep { color: #ffffff; opacity: .85; } .mm-rep:hover { color: #fff; opacity: 1; }
 .lb-copy { margin-left: 6px; padding: 2px 8px; font: 10px 'Cinzel'; letter-spacing: .15em; text-transform: uppercase; color: #e8dcc0; background: rgba(139,15,15,.35); border: 1px solid #7a3030; cursor: pointer; vertical-align: middle; } .lb-copy:hover { background: rgba(194,29,29,.5); }
+
+.mm-side { align-items: flex-start; }
+.mm-col { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.mm-signin { padding: 7px 10px; background: rgba(139,15,15,.35); border: 1px solid #7a2a2a; color: #f2e8d6; font: 700 11px 'Cinzel'; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; }
+.mm-signin:hover { background: rgba(194,29,29,.5); }
+.lb-gear { position: absolute; top: 14px; right: 16px; z-index: 8; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: rgba(8,5,5,.65); border: 1px solid #4a2c2c; color: #cfc4b3; cursor: pointer; border-radius: 50%; transition: all .25s; }
+.lb-gear:hover { color: #fff; border-color: #c21d1d; transform: rotate(60deg); }
+.set-overlay { position: fixed; inset: 0; z-index: 3200; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; }
+.seat-host { margin-left: 6px; padding: 2px 7px; font: 9px 'Cinzel'; letter-spacing: .12em; text-transform: uppercase; color: #e8c050; background: transparent; border: 1px solid #6a5226; cursor: pointer; flex: none; }
+.seat-host:hover { background: rgba(232,192,80,.15); }
+
+/* top right: [mail] [level], with Sign up / Log in under the level badge */
+.mm-top { position: absolute; top: 28px; right: 30px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 4; }
+.mm-top-row { display: flex; align-items: stretch; gap: 10px; }
+.mm-top .mm-badge { position: static; }
+.mm-top .mm-signin { width: 100%; padding: 8px 14px; }
+.mm-mail { position: relative; width: 58px; display: flex; align-items: center; justify-content: center; background: rgba(8,5,5,.65); border: 1px solid #4a2c2c; color: #d9cfbf; cursor: pointer; transition: all .2s; }
+.mm-mail:hover { color: #fff; border-color: #c21d1d; }
+.mm-mail-n { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; border-radius: 9px; background: #c21d1d; color: #fff; font: 700 11px 'Cinzel'; display: flex; align-items: center; justify-content: center; font-style: normal; box-shadow: 0 0 10px rgba(194,29,29,.8); animation: mailPulse 1.6s infinite; }
+@keyframes mailPulse { 50% { box-shadow: 0 0 2px rgba(194,29,29,.4); } }
+.mail-letter, .mailbox { position: fixed; inset: 0; z-index: 3600; background: rgba(0,0,0,.78); display: flex; align-items: center; justify-content: center; padding: 12px; }
+.ml-paper { width: min(640px, 96vw); max-height: 92vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #2a2019, #17110d); border: 1px solid #8a6d3b; box-shadow: 0 0 60px rgba(0,0,0,.9), inset 0 0 40px rgba(0,0,0,.5); }
+.ml-head { padding: 16px 22px 10px; border-bottom: 1px solid #4a3a22; }
+.ml-from { font: 12px 'Cinzel'; letter-spacing: .12em; color: #a89570; } .ml-from b { color: #e8c88a; font-weight: 700; }
+.ml-sub { font: 700 24px 'Cinzel'; letter-spacing: .08em; color: #f2e8d6; margin-top: 4px; }
+.ml-body { padding: 16px 22px; overflow-y: auto; flex: 1; min-height: 120px; font: 17px/1.75 'Noto Sans Sinhala', 'Nirmala UI', 'Iskoola Pota', 'IM Fell English', sans-serif; color: #e6dcc8; scrollbar-width: thin; scrollbar-color: #8a6d3b transparent; }
+.ml-body p { margin: 0 0 14px; }
+.ml-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 22px; border-top: 1px solid #4a3a22; }
+.ml-foot #ml-hint { font: italic 14px 'IM Fell English'; color: #c9a060; } .ml-foot .btn:disabled { opacity: .35; cursor: default; }
+.mb-panel { width: min(460px, 94vw); display: flex; flex-direction: column; gap: 10px; }
+.mb-list { display: flex; flex-direction: column; gap: 6px; }
+.mb-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #2a1c1c; background: rgba(255,255,255,.02); cursor: pointer; }
+.mb-row:hover { border-color: #8a2a2a; } .mb-row.new { border-color: #7a5a2a; background: rgba(200,160,60,.07); }
+.mb-dot { width: 10px; height: 10px; border-radius: 50%; background: #3a3030; flex: none; } .mb-row.new .mb-dot { background: #e8c050; box-shadow: 0 0 8px #e8c050; }
+.mb-t { flex: 1; min-width: 0; } .mb-t b { display: block; font: 700 16px 'Cinzel'; letter-spacing: .06em; } .mb-t span { font-size: 13px; color: #8a7f73; }
+.mb-row em { font: italic 13px 'IM Fell English'; color: #8a7f73; } .mb-row.new em { color: #e8c050; }
+
+/* smaller mail button; the unread dot must really hide at 0 (display:flex was overriding [hidden]) */
+.mm-mail-n[hidden] { display: none !important; }
+.mm-top-row { align-items: center; }
+.mm-mail { width: 36px; height: 36px; }
+.mm-mail svg { width: 18px; height: 18px; }
+.mm-mail-n { top: -5px; right: -5px; min-width: 14px; height: 14px; border-radius: 7px; font-size: 9px; }
+
+/* mail button as tall as the level badge */
+.mm-top-row { align-items: stretch; }
+.mm-mail { height: auto; width: 40px; align-self: stretch; }
+
+/* mail button: half the height of the level badge (badge is ~84px tall) */
+.mm-mail { height: 42px; width: 46px; align-self: center; }
+
+/* mail button: top edge level with the level badge */
+.mm-mail { align-self: flex-start; }

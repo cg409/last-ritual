@@ -7,7 +7,9 @@ import { TICK_RATE } from '@shared/constants.js';
 
 // The server address: edit dist/config.js after building (no rebuild needed), or set VITE_SERVER_URL at build time.
 const cfg = typeof window !== 'undefined' && window.TLR_SERVER_URL && !/PASTE/.test(window.TLR_SERVER_URL) ? window.TLR_SERVER_URL.replace(/\/+$/, '') : '';
-export const SERVER_URL = cfg || import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+// Running the dev server on your own PC (npm run dev): talk to your own local game server on :3000 (add ?prodserver=1 to use the online one).
+const localDev = import.meta.env.DEV && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !new URLSearchParams(location.search).has('prodserver');
+export const SERVER_URL = localDev ? 'http://localhost:3000' : cfg || import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 // Opened from the internet but still pointing at localhost = the Render address was never put into config.js.
 export const SERVER_MISCONFIGURED = /localhost|127\.0\.0\.1/.test(SERVER_URL) && !/^(localhost|127\.0\.0\.1|192\.168\.|10\.)/.test(location.hostname);
 // Free servers fall asleep; poking /health the moment the page opens wakes it while the game loads.

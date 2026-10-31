@@ -3,6 +3,7 @@
 import { generateMap, randomWalkable, collide } from './map.js';
 import { makeRng, dist } from './rng.js';
 import { MONSTERS, MONSTER_IDS, SKINS, TRAP_IDS } from './constants.js';
+import { WEAPON_IDS } from './weapons.js';
 import { updateSurvivor } from './survivor.js';
 import { updateMonster } from './monster.js';
 import { updateWorld } from './world.js';
@@ -43,13 +44,15 @@ export class Game {
     const monsterId = roster.some((r) => r.id === forceMonster) ? forceMonster : chooseMonster(roster, this.rng);
     const usedSkins = new Set();
     let spawnIdx = 0;
-    for (const r of roster) {
+    for (const r0 of roster) {
+      let r = r0;
       const isMonster = r.id === monsterId;
       let skin = r.skin;
       if (!skin || usedSkins.has(skin) || !SKINS.some((s) => s.id === skin)) skin = SKINS.find((s) => !usedSkins.has(s.id)).id;
       usedSkins.add(skin);
       const sp = isMonster ? this.map.monsterSpawn : this.map.spawns[spawnIdx++ % this.map.spawns.length];
       const monster = isMonster ? (MONSTERS[r.monsterPref] ? r.monsterPref : this.rng.pick(MONSTER_IDS)) : null;
+      if (r.isBot && !r.weapon) r = { ...r, weapon: this.rng.pick(WEAPON_IDS) }; // NPC monsters carry a random weapon
       const p = makePlayer(r, isMonster, sp, skin, monster);
       this.state.players.push(p);
       if (p.isBot) this.bots.set(p.id, p.role === 'monster' ? new MonsterBot(this, p) : new SurvivorBot(this, p));

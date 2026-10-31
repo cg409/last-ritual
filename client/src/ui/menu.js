@@ -3,8 +3,9 @@ import { GAME_NAME, MONSTERS } from '@shared/constants.js';
 import { show, on, q, esc } from './dom.js';
 import { sfx } from '../audio.js';
 import { gameTitle } from '../title.js';
+import { MAIL_ICON, unreadCount } from './mail.js';
 
-export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLoadout, onFriends, onLeaderboard, onReport, requests = 0, name, onName, locked = false, profile = null }) {
+export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLoadout, onFriends, onLeaderboard, onReport, onSignIn, onMail, requests = 0, name, onName, locked = false, profile = null }) {
   const words = gameTitle().split(' '), last = words.pop();
   const items = [['sp', 'Singleplayer', 'You and four souls bound by the curse'], ['mp', 'Multiplayer', 'Gather with the living — or hunt them'],
     ['lo', 'Loadout', 'Character · monster · perks · traps'],
@@ -23,14 +24,18 @@ export function mainMenu({ onSingle, onMulti, onHow, onSettings, onProfile, onLo
         </nav>
         <label class="mm-name"><span>${locked ? 'Signed in as' : 'Sign your name'}</span><input class="field" id="nm" maxlength="16" placeholder="Survivor" value="${esc(name)}" ${locked ? 'readonly' : ''} /></label>
       </div>
-      ${profile ? `<button class="mm-badge" id="mm-badge" title="Open your profile"><div class="bl"><span>LEVEL</span><b>${profile.level}</b></div>
-        <div class="bc"><div>${esc(name)}</div><small>${profile.account ? 'Account' : 'Guest'}</small><small>◉ ${profile.coins} · ◆ ${profile.shards}</small></div></button>` : ''}
+      <div class="mm-top"><div class="mm-top-row">
+        <button class="mm-mail" id="mm-mail" title="Mail" aria-label="Mail">${MAIL_ICON}<i class="mm-mail-n" ${unreadCount() ? '' : 'hidden'}>${unreadCount()}</i></button>
+        ${profile ? `<button class="mm-badge" id="mm-badge" title="Open your profile"><div class="bl"><span>LEVEL</span><b>${profile.level}</b></div>
+        <div class="bc"><div>${esc(name)}</div><small>${profile.account ? 'Account' : 'Guest'}</small><small>◉ ${profile.coins} · ◆ ${profile.shards}</small></div></button>` : ''}</div>
+        ${profile && profile.account ? '' : '<button class="mm-signin" id="signin">Sign up / Log in</button>'}</div>
       <nav class="mm-side">${side.map(([id, label, ic]) => `<button class="mm-sbtn" id="${id}"><b>${ic}</b><span class="mm-l">${label}${id === 'fr' && requests ? `<i class="mm-badge-n">${requests}</i>` : ''}</span></button>`).join('')}</nav>
       <div class="mm-foot"><span>WASD · SHIFT · E · SPACE</span><span>Headphones recommended</span><button class="mm-rep" id="rep" title="Send a bug report or feedback to the developers">report</button><span>v1.0</span></div>
     </div>`);
   q('#nm').addEventListener('input', (e) => onName(e.target.value));
   document.querySelectorAll('.mm-item, .mm-sbtn').forEach((b) => { b.addEventListener('mouseenter', () => sfx.hover()); b.addEventListener('click', () => sfx.click()); });
   on('#sp', 'click', onSingle); on('#mp', 'click', onMulti); on('#how', 'click', onHow); on('#set', 'click', onSettings);
+  on('#signin', 'click', () => { sfx.click(); onSignIn?.(); }); on('#mm-mail', 'click', () => { sfx.click(); onMail?.(); });
   on('#prof', 'click', onProfile); on('#mm-badge', 'click', onProfile); on('#lo', 'click', onLoadout); on('#fr', 'click', onFriends); on('#lbd', 'click', onLeaderboard); on('#rep', 'click', onReport);
 }
 
@@ -89,7 +94,7 @@ export function howTo(onBack) {
         <b>Perks & loadout</b>Open the ghost-face Loadout in the lobby to pick your survivor, monster, perks and trap. Unlock with soul shards, upgrade with ritual coins. Matches give XP up to level 100.
         <b>Chat</b>Press <span class="key">ENTER</span> during a match.
         <b>Hiding</b><span class="key">C</span> crouch · <span class="key">X</span> crawl. Crouch in tall grass to vanish. Running makes noise.
-        <b>Monster</b><span class="key">LMB</span> attack · <span class="key">Q</span> special · <span class="key">RMB</span> aim (Stalker / Puppeteer) · <span class="key">R</span> chainsaw (Ravager) · <span class="key">T</span> set trap · hold <span class="key">E</span> pick up / hang / damage tombs · <span class="key">Z</span> drop.
+        <b>Monster</b><span class="key">LMB</span> attack · <span class="key">Q</span> special · <span class="key">RMB</span> aim (Stalker / Puppeteer) · <span class="key">R</span> rev the chainsaw (if you chose it) · <span class="key">T</span> set trap · hold <span class="key">E</span> pick up / hang / damage tombs · <span class="key">Z</span> drop.
         Not every monster can simply run you down. Be patient. Be cruel.
       </div>
       <div style="text-align:center;margin-top:18px"><button class="btn small" id="back">Back</button></div>

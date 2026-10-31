@@ -18,7 +18,7 @@ export const ACTIONS = [
   ['skill', 'Skill check / struggle / jump', 'Space'], ['jump', 'Jump (extra key)', 'KeyJ'],
   ['light', 'Flashlight on / off', 'KeyF'], ['string', 'Use enchanted string', 'Digit2'], ['eye', 'Use The Eye', 'Digit3'],
   ['chat', 'Chat', 'Enter'], ['quick', 'Quick message wheel (hold)', 'KeyQ'], ['special', 'Monster special', 'KeyQ'], ['trap', 'Set trap', 'KeyT'],
-  ['rev', 'Rev chainsaw', 'KeyR'], ['view', 'Mimic: 1st / 3rd person while disguised', 'KeyV'], ['drop', 'Drop survivor', 'KeyZ'], ['map', 'Toggle mini-map', 'KeyM'], ['spectate', 'Spectate toggle', 'Tab'],
+  ['rev', 'Rev chainsaw', 'KeyR'], ['zoom', 'Zoom vision (hold)', 'KeyB'], ['view', 'Mimic: 1st / 3rd person while disguised', 'KeyV'], ['drop', 'Drop survivor', 'KeyZ'], ['map', 'Toggle mini-map', 'KeyM'], ['spectate', 'Spectate toggle', 'Tab'],
 ];
 
 const DEFAULTS = {

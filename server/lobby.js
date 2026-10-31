@@ -1,6 +1,6 @@
 // Lobby management: up to 5 players, empty seats are filled with bots when the match starts.
 import { Game } from '../shared/game.js';
-import { MAX_PLAYERS, SKINS, BOT_NAMES, MONSTER_IDS, TRAPS, TICK_RATE, PERKS, MAX_PERKS } from '../shared/constants.js';
+import { MAX_PLAYERS, SKINS, BOT_NAMES, MONSTER_IDS, TRAPS, TICK_RATE, PERKS, MAX_PERKS, WEAPONS, DEFAULT_WEAPON } from '../shared/constants.js';
 
 const SNAP_EVERY = 1; // send a snapshot every tick (20 Hz)
 const code = () => Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -37,7 +37,7 @@ export class LobbyManager {
     const taken = new Set(lobby.members.map((m) => m.skin));
     lobby.members.push({
       id: socket.id, name: clean(name) || 'Survivor', ready: false,
-      skin: SKINS.find((s) => !taken.has(s.id)).id, monsterPref: MONSTER_IDS[0], trap: 'bear',
+      skin: SKINS.find((s) => !taken.has(s.id)).id, monsterPref: MONSTER_IDS[0], weapon: DEFAULT_WEAPON, weaponLvl: 1, trap: 'bear',
     });
     this.bySocket.set(socket.id, lobby.code);
     socket.join(lobby.code);
@@ -68,6 +68,8 @@ export class LobbyManager {
     const me = lobby.members.find((m) => m.id === socket.id);
     if (data.skin && SKINS.some((s) => s.id === data.skin) && !lobby.members.some((m) => m !== me && m.skin === data.skin)) me.skin = data.skin;
     if (data.monsterPref && MONSTER_IDS.includes(data.monsterPref)) me.monsterPref = data.monsterPref;
+    if (data.weapon && WEAPONS[data.weapon]) me.weapon = data.weapon;
+    if (data.weaponLvl) me.weaponLvl = Math.max(1, Math.min(3, data.weaponLvl | 0));
     if (data.trap && TRAPS[data.trap]) me.trap = data.trap;
     if (data.trapLvl) me.trapLvl = Math.max(1, Math.min(3, data.trapLvl | 0));
     if (Array.isArray(data.perks)) me.perks = data.perks.filter((p) => PERKS[p?.id]).slice(0, MAX_PERKS).map((p) => ({ id: p.id, lvl: Math.max(1, Math.min(3, p.lvl | 0 || 1)) }));
@@ -81,6 +83,14 @@ export class LobbyManager {
     const lobby = this.lobbyOf(socket); if (!lobby || lobby.host !== socket.id || lobby.game) return;
     lobby.private = !!v; this.broadcast(lobby);
     this.io.to(lobby.code).emit('lobby:chat', { sys: true, text: lobby.private ? 'The circle is now PRIVATE - only those with the code can enter.' : 'The circle is now PUBLIC - anyone can join.' });
+  }
+
+  // the host hands the lobby (and the Begin button) to another real player
+  setHost(socket, id) {
+    const lobby = this.lobbyOf(socket); if (!lobby || lobby.host !== socket.id || lobby.game) return;
+    const to = lobby.members.find((m) => m.id === id); if (!to || to.id === socket.id) return;
+    lobby.host = to.id; to.ready = false; this.broadcast(lobby);
+    this.io.to(lobby.code).emit('lobby:chat', { sys: true, text: `${to.name} is now the host.` });
   }
 
   ready(socket, r) {
@@ -135,7 +145,7 @@ export class LobbyManager {
   broadcast(lobby) {
     this.io.to(lobby.code).emit('lobby:state', {
       code: lobby.code, name: lobby.name, host: lobby.host, inGame: !!lobby.game, private: !!lobby.private,
-      members: lobby.members.map(({ id, name, ready, skin, monsterPref, trap, perks, level }) => ({ id, name, ready, skin, monsterPref, trap, perks, level })),
+      members: lobby.members.map(({ id, name, ready, skin, monsterPref, weapon, weaponLvl, trap, perks, level }) => ({ id, name, ready, skin, monsterPref, weapon, weaponLvl, trap, perks, level })),
     });
   }
 }

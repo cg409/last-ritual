@@ -13,7 +13,7 @@ export function makeSnapshot(g) {
       state: p.state, health: p.health, lives: p.lives, keys: p.keys, heals: p.heals | 0, selfHealT: r1(p.selfHealT || 0), act: p.act, actT: r1(p.actT),
       candles: p.candles.map(Math.round), holding: p.holding, carrying: p.carrying, carrier: p.carrier, hookId: p.hookId,
       hookT: r1(p.hookT), downT: r1(p.downT), disguise: p.disguise, aiming: p.aiming,
-      saw: p.sawUntil > t, rev: p.revUntil > t, trail: p.trailUntil > t, reveal: p.revealUntil > t,
+      weapon: p.weapon, wlv: p.weaponLvl, saw: p.sawUntil > t, rev: p.revUntil > t, trail: p.trailUntil > t, reveal: p.revealUntil > t,
       aura: p.auraUntil > t || p.revealUntil > t, lunge: p.lungeUntil > t, climb: p.climbUntil > t,
       stuck: p.stuckUntil > t, fallen: p.fallUntil > t, fallK: p.fallUntil > t ? r1(1 - (p.fallUntil - t) / TRIP.fall) : 0, hidden: !!p.hidden, stamina: r1(p.stamina ?? 1), exhausted: !!p.exhausted, slow: p.slowUntil > t, traps: p.traps, trap: p.trap, wiggle: r1(p.wiggle),
       specialCd: r1(Math.max(0, p.specialCdUntil - t)), tridentCd: r1(Math.max(0, p.tridentCdUntil - t)),

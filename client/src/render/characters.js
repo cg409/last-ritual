@@ -3,7 +3,7 @@
 // (crouch, crawl, downed, carried, hanging, aiming, tripping) are expressed in body space, so they
 // work on any rig orientation (see poses.js).
 import * as THREE from 'three';
-import { makeGltfLoader, loadRetry, fetchRetry, liteMat } from './assets.js';
+import { makeGltfLoader, loadRetry, fetchRetry, liteMat, cloneWeapon } from './assets.js';
 import { graphics } from '../settings.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { applyLook, skinById } from './outfits.js';
@@ -15,6 +15,13 @@ import { prepBones, rot, crawlPose, downedPose, carriedPose, carrierPose, jumpPo
 
 const _ka = new THREE.Vector3(), _kb = new THREE.Vector3();
 const LEG_FIX = 0.5;
+// How a monster holds its weapon: pitch (rad, forward = -Z) of the shaft; the chainsaw is levelled out in front.
+// pitch: shaft angle from straight up (more negative = further forward / down), yaw: turned in towards the body, grip: where along the weapon the hand holds it (0 = butt end, 1 = business end)
+const HOLD = {
+  axe: { pitch: -2.5, yaw: -0.12, grip: 0.12 }, machete: { pitch: -2.4, yaw: -0.1, grip: 0.1 }, cleaver: { pitch: -2.4, yaw: -0.1, grip: 0.1 }, crowbar: { pitch: -2.6, yaw: -0.1, grip: 0.15 },
+  bat: { pitch: -2.6, yaw: -0.1, grip: 0.1 }, sledge: { pitch: -2.7, yaw: -0.1, grip: 0.1 }, maul: { pitch: -2.7, yaw: -0.1, grip: 0.12 }, chainsaw: { pitch: -2.1, yaw: -0.08, grip: 0.16 },
+};
+const _wq = new THREE.Quaternion(), _we = new THREE.Euler();
 const _tq = new THREE.Quaternion(), _tw = new THREE.Quaternion(), _tilt = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2 - 0.12, 0, 0)); // how far the running legs are eased toward straight, tucked-in legs
 
 const BASE = import.meta.env.BASE_URL;
@@ -71,7 +78,7 @@ export class Character {
     this.root = new THREE.Group();
     this.model = new THREE.Group();   // container: faces -Z (the view yaws it by PI), pitched for prone poses
     this.root.add(this.model);
-    this.skin = info.skin; this.disguise = null;
+    this.skin = info.skin; this.disguise = null; this.wantWeapon = info.weapon || null;
     this.blend = { crouch: 0, crawl: 0, down: 0, hang: 0, carried: 0, carrying: 0, air: 0, aim: 0, fall: 0, idle: 0, arms: 0, runK: 0, mend: 0 };
     this.swingT = 0; this.t = Math.random() * 10;
     this.setBody(this.isMonster ? this.monster : 'player', info.skin);
@@ -122,10 +129,25 @@ export class Character {
       this.candle = makeFlashlight(); this.candle.visible = false;
       attachTo(this.bones.lHand, this.candle, this.model); this.extrasList.push(this.candle);
     }
+    this.weaponObj = null;
+    if (this.isMonster && this.kind !== 'player' && this.wantWeapon) this.setWeapon(this.wantWeapon);
     if (this.kind === 'mimic') { // the lantern in her hand casts a warm, flickering glow
       const l = vlight(0xff9a40, 1.0, 5, 2); l.flicker = 1;
       attachTo(this.bones.rHand, l, this.model); this.extrasList.push(l);
     }
+  }
+
+  // The monster's weapon in its right hand (any weapon on any monster). Needs the weapon models to be loaded.
+  setWeapon(id) {
+    this.wantWeapon = id;
+    if (this.weaponId === id && this.weaponObj?.parent) return;
+    if (this.weaponObj) { this.weaponObj.removeFromParent(); this.weaponObj = null; }
+    this.weaponId = id;
+    const w = id && cloneWeapon(id); if (!w) return;
+    w.scale.setScalar(1.12); // real-life size, a touch bigger because monsters are bigger than people
+    w.children[0].position.y = -(HOLD[id]?.grip ?? 0.2) * w.userData.head; // the hand holds it part-way along the shaft, not at the very end
+    attachTo(this.bones.rHand, w, this.model);
+    this.weaponObj = w; this.extrasList.push(w);
   }
 
   setAnim(name, fade = 0.25) {
@@ -233,6 +255,15 @@ export class Character {
       this.swingT = Math.max(0, this.swingT - dt);
       const k = Math.sin((1 - this.swingT / 0.45) * Math.PI);
       rot(B.rArm, -2.0, 0, 0.5, k); rot(B.spine, 0, 0.5, 0, k);
+    }
+    if (this.wantWeapon && !this.weaponObj && this.kind !== 'player') this.setWeapon(this.wantWeapon); // models may finish loading after the character exists
+    if (this.weaponObj?.parent) { // keep the shaft pointing up-and-forward whatever the hand is doing; it lifts and chops with the swing
+      const k = this.swingT > 0 ? Math.sin((1 - this.swingT / 0.45) * Math.PI) : 0;
+      const hd = HOLD[this.weaponId] || HOLD.axe;
+      _wq.setFromEuler(_we.set(hd.pitch + k * 2.5, hd.yaw, 0, 'YXZ')); // the swing lifts the weapon up and over
+      this.weaponObj.parent.getWorldQuaternion(_tq).invert();
+      this.root.getWorldQuaternion(_tw).multiply(_wq);
+      this.weaponObj.quaternion.copy(_tq.multiply(_tw));
     }
     if (this.candle) { // the flashlight: always in hand while alive, beam only when switched on
       this.candle.visible = s.state === 'alive' && !s.crawl;

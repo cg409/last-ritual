@@ -59,6 +59,7 @@ io.on('connection', (socket) => {
   socket.on('lobby:create', safe((data, cb) => cb?.(lobbies.create(socket, data || {}))));
   socket.on('lobby:join', safe((data, cb) => cb?.(lobbies.join(socket, data || {}))));
   socket.on('lobby:quick', safe((data, cb) => cb?.(lobbies.quick(socket, data || {}))));
+  socket.on('lobby:host', safe((id) => lobbies.setHost(socket, String(id || ''))));
   socket.on('lobby:private', safe((v) => lobbies.setPrivate(socket, v)));
   socket.on('net:ping', safe((...a) => { a.find((x) => typeof x === 'function')?.(Date.now()); }));
   socket.on('lobby:leave', safe(() => lobbies.leave(socket)));

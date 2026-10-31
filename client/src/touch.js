@@ -39,6 +39,7 @@ const BUTTONS = [
   { id: 'rev',    t: '≋', l: 'REV',    show: 'm',   kind: 'tap',  key: 'rev' },
   { id: 'drop',   t: '⤓', l: 'DROP',   show: 'm',   kind: 'tap',  key: 'drop' },
   { id: 'next',   t: '➜', l: 'NEXT',   show: 'dead', kind: 'next' },
+  { id: 'zoom',   t: '🔍', l: 'ZOOM',   show: 'sm',  kind: 'hold', key: 'zoom' },
   { id: 'spect',  t: '👻', l: 'SPECTATE', show: 'dead', kind: 'tap', key: 'spectate' },
 ];
 
@@ -60,10 +61,10 @@ export function goFullscreen() {
 // out around it in even steps. [right, bottom, size]
 const DEFAULT_POS = {
   survivor: { act: [2.3, 2.5, 1.45], jump: [5.0, 1.7, 1], crouch: [4.7, 4.3, 1], heal: [2.1, 5.2, 1], light: [7.6, 3.4, 0.9], quick: [7.2, 5.4, 0.9],
-    string: [7.8, 1.4, 0.9], eye: [9.6, 3.4, 0.9], wig: [2.3, 2.5, 1.45] },
+    string: [7.8, 1.4, 0.9], eye: [9.6, 3.4, 0.9], wig: [2.3, 2.5, 1.45], zoom: [9.8, 5.6, 0.8] },
   dead: { next: [2.3, 2.5, 1.45], spect: [5.0, 1.7, 1] },
   monster: { atk: [2.3, 2.5, 1.5], act: [5.2, 1.7, 1.1], jump: [4.6, 4.5, 1], aim: [2.1, 5.3, 1], spec: [7.3, 3.4, 1], trap: [7.9, 1.7, 1],
-    rev: [7.0, 5.5, 0.95], drop: [4.7, 6.9, 0.95] },
+    rev: [7.0, 5.5, 0.95], drop: [4.7, 6.9, 0.95], zoom: [9.8, 5.6, 0.8] },
 };export const unitSize = () => Math.max(34, Math.min(62, Math.min(window.innerWidth / 17, window.innerHeight / 9.5)));
 export const roleOf = (role, state) => (state === 'mouse' || state === 'escaped' ? 'dead' : role === 'monster' ? 'monster' : 'survivor');
 // where a button sits right now, as fractions of the screen (x, y of its centre) and a size multiplier
@@ -108,7 +109,7 @@ export class TouchControls {
     // Skill checks, struggling on the hook and wiggling out of the monster's arms: tap ANYWHERE on the screen (replaces SPACE / A / D)
     el.addEventListener('pointerdown', (e) => {
       if (!this.tapMode || e.target.closest('.tc-b, .tc-top')) return;
-      if (this.tapMode === 'wiggle') this.input.actions.push({ t: 'wiggle' }); else this.input.virtualKey('skill');
+      if (this.tapMode === 'wiggle') this.input.actions.push({ t: 'wiggle' }); else { this.input.virtualKey('skill', true); this.input.virtualKey('skill', false); }
       this.hint.classList.remove('hit'); void this.hint.offsetWidth; this.hint.classList.add('hit');
     });
     this.onResize = () => this.layout();
@@ -174,7 +175,7 @@ export class TouchControls {
       if (b.kind === 'hold') inp.virtualKey(b.key, true);
       else if (b.kind === 'tap') { inp.virtualKey(b.key, true); inp.virtualKey(b.key, false); }
       else if (b.kind === 'toggle') { const on = inp.keys.has(inp.bind(b.key)); inp.virtualKey(b.key, !on); el.classList.toggle('lock', !on); }
-      else if (b.kind === 'attack' || b.kind === 'next') { inp.actions.push({ t: 'attack' }); inp.spectateNext = true; }
+      else if (b.kind === 'attack' || b.kind === 'next') { inp.actions.push({ t: inp.mouse.r ? 'aimRelease' : 'attack' }); inp.spectateNext = true; }
       else if (b.kind === 'aim') inp.mouse.r = true;
       else if (b.kind === 'wiggle') inp.actions.push({ t: 'wiggle' });
       else if (b.kind === 'wheel') { this.lookId = e.pointerId; this.lookLast = { x: e.clientX, y: e.clientY }; inp.virtualKey(b.key, true); }
@@ -182,7 +183,7 @@ export class TouchControls {
     const up = (e) => {
       if (!held) return; held = false; el.classList.remove('on');
       if (b.kind === 'hold') inp.virtualKey(b.key, false);
-      else if (b.kind === 'aim') { if (inp.mouse.r) inp.actions.push({ t: 'aimRelease' }); inp.mouse.r = false; }
+      else if (b.kind === 'aim') { if (inp.mouse.r) inp.actions.push({ t: 'aimCancel' }); inp.mouse.r = false; }
       else if (b.kind === 'wheel') { inp.virtualKey(b.key, false); if (this.lookId === e.pointerId) this.lookId = null; }
     };
     el.addEventListener('pointerdown', down); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -203,7 +204,7 @@ export class TouchControls {
     if (tap !== this.tapMode) { this.tapMode = tap; this.el.classList.toggle('tapmode', !!tap); this.hint.textContent = { skill: 'TAP ANYWHERE', wiggle: 'TAP, TAP, TAP TO BREAK FREE', struggle: 'TAP TO STRUGGLE' }[tap] || ''; }
     const dead = state === 'mouse' || state === 'escaped';
     const inv = me?.inv || {};
-    const sig = [role, state, !!inv.string, !!inv.eye].join();
+    const sig = [role, state, !!inv.string, !!inv.eye, me?.weapon].join();
     if (sig !== this.sig) {
       this.sig = sig;
       for (const b of BUTTONS) {
@@ -211,7 +212,7 @@ export class TouchControls {
         const ok = { sm: !dead && !!role, s: role === 'survivor' && !dead, m: role === 'monster',
           carried: state === 'carried', string: role === 'survivor' && !dead && !!inv.string, eye: role === 'survivor' && !dead && !!inv.eye,
           dead }[b.show];
-        e.hidden = state === 'carried' ? b.id !== 'wig' : !ok; // carried: only WIGGLE matters
+        e.hidden = state === 'carried' ? b.id !== 'wig' : !ok || (b.id === 'rev' && me?.weapon !== 'chainsaw'); // carried: only WIGGLE matters
       }
       this.el.querySelector('[data-id=atk]').hidden = !(role === 'monster');
       this.el.classList.toggle('is-monster', role === 'monster');

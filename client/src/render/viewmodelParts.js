@@ -4,18 +4,20 @@
 // move / rotate that pivot, so swings sweep the weapon's head across the view.
 import * as THREE from 'three';
 
-export const WEAPON = { mimic: 'rake', wanderer: 'axe', puppeteer: 'halberd', ravager: 'chainsaw', stalker: 'trident' };
 
 // Camera space: -Z forward, +X right, +Y up (fov 58: at 0.6m depth the frame spans about ±0.33
 // vertically and ±0.59 horizontally at 16:9).
 // pivot = rest position of the hidden hand, dir = shaft direction (pivot → head),
 // spin = roll about the shaft (which way the blade / tines face), reach = pivot → head distance.
 export const HOLD = {
-  rake:     { pivot: [0.5, -0.56, -0.3], dir: [-0.38, 0.78, -0.5], spin: 0.15, reach: 0.66, scale: 0.85 },
-  axe:      { pivot: [0.46, -0.52, -0.32], dir: [-0.42, 0.72, -0.55], spin: Math.PI / 2 + 0.3, reach: 0.6, scale: 0.95 },
-  halberd:  { pivot: [0.5, -0.6, -0.28], dir: [-0.35, 0.8, -0.48], spin: Math.PI / 2 + 0.35, reach: 0.68, scale: 0.85 },
-  trident:  { pivot: [0.48, -0.58, -0.3], dir: [-0.34, 0.8, -0.5], spin: 0.25, reach: 0.68, scale: 0.85 },
-  chainsaw: { pivot: [0.42, -0.42, -0.25], dir: [-0.3, 0.42, -0.86], spin: 0.1, reach: 0.62, scale: 1.0 },
+  axe:      { pivot: [0.46, -0.52, -0.32], dir: [-0.42, 0.72, -0.55], spin: Math.PI / 2 + 0.3, reach: 0.62, scale: 1 },
+  machete:  { pivot: [0.46, -0.5, -0.3], dir: [-0.4, 0.74, -0.52], spin: 0.4, reach: 0.6, scale: 1.05 },
+  cleaver:  { pivot: [0.46, -0.5, -0.3], dir: [-0.4, 0.74, -0.52], spin: 0.4, reach: 0.52, scale: 1.1 },
+  crowbar:  { pivot: [0.48, -0.55, -0.3], dir: [-0.38, 0.78, -0.5], spin: 0.9, reach: 0.64, scale: 1 },
+  bat:      { pivot: [0.5, -0.56, -0.3], dir: [-0.38, 0.78, -0.5], spin: 0.2, reach: 0.66, scale: 1 },
+  sledge:   { pivot: [0.5, -0.58, -0.3], dir: [-0.36, 0.78, -0.5], spin: 0.5, reach: 0.64, scale: 1 },
+  maul:     { pivot: [0.5, -0.6, -0.3], dir: [-0.34, 0.8, -0.48], spin: 0.2, reach: 0.68, scale: 1 },
+  chainsaw: { pivot: [0.36, -0.3, -0.3], dir: [-0.25, 0.3, -0.92], spin: Math.PI / 2, reach: 0.52, scale: 1.0 },
 };
 
 const ease = (k) => k * k * (3 - 2 * k);
